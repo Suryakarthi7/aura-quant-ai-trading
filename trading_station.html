@@ -1,0 +1,2868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA QUANT | AI Trading Station (Smart Stock Search)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 p-4 md:p-6 antialiased min-h-screen" onclick="closeSuggestionsOnClickOutside(event)">
+  <div class="max-w-7xl mx-auto space-y-5">
+    
+    <!-- Top Bar -->
+    <header class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 font-bold text-lg">
+          AQ
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-base font-bold text-white tracking-tight">AURA QUANT AI</h1>
+            <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">ALL NSE STOCKS</span>
+            <span id="feed-source-badge" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 flex items-center space-x-1 shadow-sm"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block mr-1"></span>REAL NSE LIVE FEED</span>
+          </div>
+          <p class="text-xs text-slate-400">Autonomous Intraday & Options Trading Engine</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <!-- Market Clock -->
+        <div class="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-400 flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="mono" id="clock">09:15:00 IST</span>
+        </div>
+
+        <!-- Bot Status Badge -->
+        <div class="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center space-x-2">
+          <span id="bot-pulse" class="w-2 h-2 rounded-full bg-rose-500"></span>
+          <span id="bot-status" class="text-xs font-bold text-rose-400 uppercase">STOPPED</span>
+        </div>
+
+        <!-- Start / Stop Controls -->
+        <button id="btn-start" onclick="toggleBot(true)" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+          <span>START AI BOT</span>
+        </button>
+        <button id="btn-stop" onclick="toggleBot(false)" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center space-x-1.5 cursor-pointer">
+          <span>EMERGENCY STOP</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Kill Switch Alert Banner -->
+    <div id="kill-banner" class="hidden bg-rose-950/80 border-2 border-rose-500 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center font-bold">!</div>
+        <div>
+          <div class="font-bold text-sm text-rose-200">DAILY LOSS LIMIT TRIGGERED — BOT HALTED</div>
+          <div class="text-xs text-rose-300">All open positions were instantly squared off to protect your capital.</div>
+        </div>
+      </div>
+      <button onclick="resetAccount()" class="px-3 py-1.5 bg-rose-800 hover:bg-rose-700 rounded-lg text-xs font-semibold cursor-pointer">Reset Demo</button>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div class="text-xs text-slate-400 font-medium">Virtual Capital</div>
+        <div class="mt-1 text-2xl font-bold mono text-white" id="card-capital">₹1,00,000.00</div>
+        <div class="text-[11px] text-slate-500 mt-1">Starting: <span class="mono" id="card-init-capital">₹1,00,000</span></div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div class="flex justify-between items-center text-xs text-slate-400 font-medium">
+          <span>Today's Net P&L (After Charges)</span>
+          <span id="card-brokerage-tag" class="text-[10px] mono text-amber-400 font-semibold">Charges: -₹0</span>
+        </div>
+        <div class="mt-1 text-2xl font-bold mono text-emerald-400" id="card-pnl">+₹0.00</div>
+        <div class="text-[11px] text-slate-400 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+          <span>Gross: <b class="mono text-slate-300" id="card-gross-pnl">₹0.00</b></span>
+          <span>•</span>
+          <span>Brokerage: <b class="mono text-rose-400" id="card-brokerage-total">-₹0.00</b></span>
+          <span>•</span>
+          <span>Live: <b class="mono" id="card-unrealized">₹0.00</b></span>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div class="flex justify-between items-center text-xs text-slate-400 font-medium">
+          <span>Daily Loss Limit Budget</span>
+          <span class="mono" id="card-limit-val">Max: ₹2,000</span>
+        </div>
+        <div class="mt-1 flex items-baseline justify-between">
+          <div class="text-xl font-bold mono text-slate-200" id="card-loss-pct">0.0% Used</div>
+          <span class="text-[11px] text-slate-400 mono" id="card-loss-rem">₹2,000 left</span>
+        </div>
+        <div class="w-full bg-slate-950 h-2 rounded-full mt-2 overflow-hidden border border-slate-800">
+          <div id="loss-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div class="flex justify-between items-center text-xs text-slate-400 font-medium">
+          <span>Win Rate & Trade Cap</span>
+          <span id="card-trade-cap-pill" class="text-[10px] px-1.5 py-0.5 rounded font-bold mono bg-slate-800 text-slate-300">0/10 Trades</span>
+        </div>
+        <div class="mt-1 text-2xl font-bold mono text-purple-400" id="card-winrate">0.0%</div>
+        <div class="text-[11px] text-slate-400 mt-1 flex justify-between items-center">
+          <div><span id="card-wins">0</span> wins / <span id="card-losses">0</span> losses</div>
+          <span id="card-trade-status" class="text-[10px] font-semibold text-emerald-400">Trade Cap: Active</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Capital, Loss Limit & Smart Autocomplete Add Stock Bar -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-4">
+      <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
+        <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">Capital & Risk Settings</div>
+        <div class="text-xs text-slate-400">Total Stocks on Radar: <b class="text-indigo-400 mono" id="stock-count-badge">50</b></div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Initial Capital (₹)</label>
+          <input type="number" id="input-capital" value="5000" step="500" min="100" oninput="onCapitalInput()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Daily Max Loss Limit (₹)</label>
+          <input type="number" id="input-loss-limit" value="1000" step="100" min="50" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-rose-500">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-xs text-slate-400">Risk Per Trade (%)</label>
+            <span class="text-[10px] text-indigo-400 font-bold mono">Percent</span>
+          </div>
+          <div class="relative">
+            <input type="number" id="input-risk-pct" value="2.0" step="0.1" min="0.1" max="10.0" oninput="onRiskPctInput()" placeholder="2.0"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-indigo-500">
+            <span class="absolute right-3 top-2.5 text-xs text-slate-500 mono">%</span>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-xs text-slate-400">Risk Per Trade (₹ Amount)</label>
+            <span id="risk-calc-badge" class="text-[10px] text-emerald-400 font-bold mono">= ₹100</span>
+          </div>
+          <div class="relative">
+            <span class="absolute left-2.5 top-2 text-xs text-emerald-400 font-bold mono">₹</span>
+            <input type="number" id="input-risk-amount" value="100" step="10" min="10" oninput="onRiskAmountInput()" placeholder="₹ Amount"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-6 pr-3 py-2 text-sm mono text-white focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-xs text-slate-400">Max Trades / Day</label>
+            <span id="max-trades-badge" class="text-[10px] text-amber-400 font-bold mono">Cap: 10</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <input type="number" id="input-max-trades" value="10" min="1" max="100" step="1" oninput="onMaxTradesInput()"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-amber-500" placeholder="10">
+            <div class="flex space-x-0.5">
+              <button type="button" onclick="setMaxTradesPreset(5)" class="px-1.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] mono border border-slate-700 cursor-pointer" title="Cap at 5 trades">5</button>
+              <button type="button" onclick="setMaxTradesPreset(10)" class="px-1.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] mono border border-slate-700 cursor-pointer" title="Cap at 10 trades">10</button>
+              <button type="button" onclick="setMaxTradesPreset(20)" class="px-1.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] mono border border-slate-700 cursor-pointer" title="Cap at 20 trades">20</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex space-x-2">
+          <button type="button" id="btn-save-settings" onclick="saveSettings()" class="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-md flex items-center justify-center space-x-1.5 active:scale-95">
+            <span id="save-settings-icon">💾</span>
+            <span id="save-settings-text">Save Settings</span>
+          </button>
+          <button type="button" onclick="resetAccount()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer">
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Strategy Execution Style & Trade Direction Selector -->
+      <div class="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Style buttons -->
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-semibold text-slate-300">AI Strategy Style:</span>
+            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-700/80 text-xs">
+              <button onclick="setStrategyStyle('SCALPER')" id="style-btn-SCALPER" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white font-medium transition cursor-pointer">
+                ⚡ Quick Scalper
+              </button>
+              <button onclick="setStrategyStyle('TREND')" id="style-btn-TREND" class="px-3 py-1 rounded-lg bg-indigo-600 text-white font-bold transition shadow-sm cursor-pointer">
+                🏄 Trend Rider
+              </button>
+              <button onclick="setStrategyStyle('SNIPER')" id="style-btn-SNIPER" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white font-medium transition cursor-pointer">
+                🎯 Safe Sniper
+              </button>
+            </div>
+            <!-- Model Qualified Stocks Filter Toggle -->
+            <button type="button" id="btn-model-filter" onclick="toggleModelFilter()"
+              class="px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer bg-slate-950 border border-slate-700 hover:border-slate-600 text-slate-300 shadow-sm"
+              title="Filter radar list to show only stocks qualifying for the active model">
+              <span id="model-filter-icon">🔍</span>
+              <span>Filter Model Stocks</span>
+              <span id="model-filter-badge" class="text-[10px] px-1.5 py-0.5 rounded font-bold mono bg-slate-800 text-slate-400 border border-slate-700">OFF</span>
+            </button>
+          </div>
+
+          <!-- Trade Direction buttons -->
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-semibold text-slate-300">AI Direction:</span>
+            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-700/80 text-xs">
+              <button onclick="setTradeDirection('BOTH')" id="dir-btn-BOTH" class="px-2.5 py-1 rounded-lg bg-purple-600 text-white font-bold transition shadow-sm cursor-pointer" title="Execute both Long (BUY) and Short (SELL) trades">
+                🔄 BOTH (BUY & SELL)
+              </button>
+              <button onclick="setTradeDirection('BUY_ONLY')" id="dir-btn-BUY_ONLY" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-emerald-400 font-medium transition cursor-pointer" title="Only execute Long (BUY) trades">
+                🟢 BUY Only
+              </button>
+              <button onclick="setTradeDirection('SELL_ONLY')" id="dir-btn-SELL_ONLY" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-rose-400 font-medium transition cursor-pointer" title="Only execute Short (SELL) trades">
+                🔴 SELL Only (Short)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="style-description-badge" class="text-[11px] px-3 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+          🏄 Trend Rider: 1:2 R:R • BUY ≥ 75% | SELL ≤ 25% (Short) • Trailing Stop Active
+        </div>
+      </div>
+
+      <!-- Elite Accuracy Shield (The Big 4 Institutional Filters) -->
+      <div class="pt-3 border-t border-slate-800 space-y-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center space-x-1.5">
+              <span>🛡️</span>
+              <span>Elite Accuracy Shield (6 Institutional Confirmation Filters)</span>
+            </span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold mono">85%+ Win-Rate Target</span>
+          </div>
+          <div id="accuracy-summary-pill" class="text-[11px] text-slate-300 font-medium bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 flex items-center space-x-2">
+            <span id="shield-nifty-pill" class="text-[10px] font-bold text-emerald-400">🌊 NIFTY: Bullish</span>
+            <span class="text-slate-600">•</span>
+            <span id="shield-time-pill" class="text-[10px] font-bold text-indigo-300">⏰ Window: Active</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
+          <!-- Filter 1: NIFTY Trend Alignment -->
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between shadow-sm">
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-xs font-bold text-white">1. NIFTY Index</span>
+                <span id="nifty-trend-badge" class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">BULLISH</span>
+              </div>
+              <div class="text-[10px] text-slate-400">Never swim against market</div>
+            </div>
+            <button type="button" onclick="toggleAccuracyFilter('nifty')" id="btn-filter-nifty" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm">
+              ON
+            </button>
+          </div>
+
+          <!-- Filter 2: No-Trade Zone / Chop Protection -->
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between shadow-sm">
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-xs font-bold text-white">2. Chop Guard</span>
+                <span id="time-window-badge" class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ACTIVE</span>
+              </div>
+              <div class="text-[10px] text-slate-400">Avoid midday decay trap</div>
+            </div>
+            <button type="button" onclick="toggleAccuracyFilter('time')" id="btn-filter-time" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm">
+              ON
+            </button>
+          </div>
+
+          <!-- Filter 3: 15m MTF Alignment -->
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between shadow-sm">
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-xs font-bold text-white">3. 15m MTF</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">CONFIRMED</span>
+              </div>
+              <div class="text-[10px] text-slate-400">Higher timeframe harmony</div>
+            </div>
+            <button type="button" onclick="toggleAccuracyFilter('mtf')" id="btn-filter-mtf" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm">
+              ON
+            </button>
+          </div>
+
+          <!-- Filter 4: 9/20 EMA Dynamic Ribbon -->
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between shadow-sm">
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-xs font-bold text-white">4. 9/20 EMA</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">MOMENTUM</span>
+              </div>
+              <div class="text-[10px] text-slate-400">Golden ribbon velocity</div>
+            </div>
+            <button type="button" onclick="toggleAccuracyFilter('ema')" id="btn-filter-ema" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm">
+              ON
+            </button>
+          </div>
+
+          <!-- Filter 5: VWAP Pullback Zone -->
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between shadow-sm">
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-xs font-bold text-white">5. VWAP Pullback</span>
+                <span id="vwap-filter-badge" class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">≤1.2% VWAP</span>
+              </div>
+              <div class="text-[10px] text-slate-400">Avoid overbought top buying</div>
+            </div>
+            <button type="button" onclick="toggleAccuracyFilter('vwap')" id="btn-filter-vwap" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm">
+              ON
+            </button>
+          </div>
+
+          <!-- Filter 6: Institutional Volume Surge -->
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between shadow-sm">
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-xs font-bold text-white">6. RVOL Surge</span>
+                <span id="rvol-filter-badge" class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30">RVOL ≥ 1.5x</span>
+              </div>
+              <div class="text-[10px] text-slate-400">Institutional volume power</div>
+            </div>
+            <button type="button" onclick="toggleAccuracyFilter('rvol')" id="btn-filter-rvol" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm">
+              ON
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add ANY Stock Search Bar with Live Autocomplete Suggestions -->
+      <div class="pt-3 border-t border-slate-800 flex flex-wrap items-center gap-3">
+        <span class="text-xs font-semibold text-slate-300">Add Any Stock to Scan:</span>
+        <div class="flex-1 min-w-[280px] flex space-x-2 relative">
+          <div class="flex-1 relative">
+            <input type="text" id="custom-stock-input"
+              oninput="onStockSearchInput()"
+              onkeydown="onStockSearchKeyDown(event)"
+              autocomplete="off"
+              placeholder="Type any stock name or symbol (e.g., Zomato, Tata, Adani, HDFC, Rail, Paytm)..."
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 uppercase mono">
+
+            <!-- Autocomplete Suggestions Dropdown -->
+            <div id="stock-autocomplete-list" class="hidden absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto divide-y divide-slate-800">
+              <!-- Dynamically populated suggestions -->
+            </div>
+          </div>
+
+          <button onclick="addCustomStock()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap">
+            + Add Stock
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two Columns: Active Positions & Scanner -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      
+      <!-- Left: Active Positions & History -->
+      <div class="lg:col-span-7 space-y-5">
+        <!-- Active Positions -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+          <div class="p-3.5 bg-slate-800/50 border-b border-slate-800 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-white uppercase tracking-wider">Active Positions</span>
+              <span id="pos-badge" class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold mono">0</span>
+            </div>
+            <div class="flex items-center space-x-2 flex-wrap gap-y-1.5">
+              <button onclick="openBulkEditSlTpModal('BUY')" class="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 hover:text-white border border-emerald-500/50 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm" title="Edit SL/TP for all active BUY stocks & future BUY stocks">
+                <span>🟢 Edit BUY SL/TP</span>
+              </button>
+              <button onclick="openBulkEditSlTpModal('SELL')" class="px-2.5 py-1 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 hover:text-white border border-rose-500/50 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm" title="Edit SL/TP for all active SELL stocks & future SELL stocks">
+                <span>🔴 Edit SELL SL/TP</span>
+              </button>
+              <span class="text-[11px] text-slate-400">Trailing Stop & 1:2 Target Active</span>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-950 text-slate-400 mono text-[11px] border-b border-slate-800">
+                <tr>
+                  <th class="py-2.5 px-3">Symbol</th>
+                  <th class="py-2.5 px-2">Type</th>
+                  <th class="py-2.5 px-2">Qty</th>
+                  <th class="py-2.5 px-2">Entry</th>
+                  <th class="py-2.5 px-2">LTP</th>
+                  <th class="py-2.5 px-2">SL / TP</th>
+                  <th class="py-2.5 px-2">P&L</th>
+                  <th class="py-2.5 px-3 text-right">Exit</th>
+                </tr>
+              </thead>
+              <tbody id="pos-tbody" class="divide-y divide-slate-800/60 font-medium">
+                <tr><td colspan="8" class="text-center py-8 text-slate-500">No open positions. Start the AI Bot to scan and trade.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Closed Trades History -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+          <div class="p-3.5 bg-slate-800/50 border-b border-slate-800 text-xs font-bold text-white uppercase tracking-wider">
+            Today's Completed Trades
+          </div>
+          <div class="overflow-x-auto max-h-56">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-950 text-slate-400 mono text-[11px] border-b border-slate-800">
+                <tr>
+                  <th class="py-2 px-3">Symbol</th>
+                  <th class="py-2 px-2">Side</th>
+                  <th class="py-2 px-2">Qty</th>
+                  <th class="py-2 px-2">Entry</th>
+                  <th class="py-2 px-2">Exit</th>
+                  <th class="py-2 px-2">P&L</th>
+                  <th class="py-2 px-3">Exit Reason</th>
+                </tr>
+              </thead>
+              <tbody id="hist-tbody" class="divide-y divide-slate-800/60">
+                <tr><td colspan="7" class="text-center py-6 text-slate-500">No closed trades yet today.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: AI Scanner & Decision Feed -->
+      <div class="lg:col-span-5 space-y-5">
+        
+        <!-- Scanner Radar with Sector & Price Amount Filters -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+          <div class="p-3.5 bg-slate-800/50 border-b border-slate-800 space-y-2.5">
+            <!-- Header Row with Title, Status Tag, and Trigger Label -->
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-white uppercase tracking-wider">Live Market Radar (All Stocks)</span>
+                <span id="stock-count-badge" class="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold mono">89 STOCKS</span>
+                <span id="price-filter-status-tag" class="text-[9px] uppercase px-1.5 py-0.5 rounded font-bold bg-slate-800 text-slate-400 border border-slate-700">Normal (All Prices)</span>
+              </div>
+              <span id="radar-trigger-label" class="text-[11px] text-indigo-300 font-semibold mono">Trigger: BUY ≥ 75% • SELL ≤ 25%</span>
+            </div>
+
+            <!-- Price Amount Filter Controls (Switch + Dropdown + Amount Input + Presets) -->
+            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div class="flex flex-wrap items-center gap-2">
+                <!-- Toggle Switch Button (Default OFF means normal all type amount include) -->
+                <button type="button" onclick="togglePriceFilter()" id="btn-toggle-price-filter"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer bg-slate-800 text-slate-400 border border-slate-700 hover:text-white"
+                  title="Toggle Price Filter: Default (OFF) includes all stock prices in active trades">
+                  <span id="price-filter-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                  <span id="price-filter-switch-label">Price Filter: OFF</span>
+                </button>
+
+                <!-- Dropdown (Higher / Lower) & Amount Input -->
+                <div id="price-filter-controls-group" class="flex items-center space-x-1.5 opacity-50 pointer-events-none transition-all">
+                  <select id="price-filter-condition" onchange="onPriceFilterChange()"
+                    class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer mono">
+                    <option value="HIGHER">Higher than (≥)</option>
+                    <option value="LOWER">Lower than (≤)</option>
+                  </select>
+
+                  <div class="relative flex items-center">
+                    <span class="absolute left-2 text-xs text-indigo-400 font-bold mono">₹</span>
+                    <input type="number" id="price-filter-amount" value="1000" step="50" min="1" oninput="onPriceFilterChange()"
+                      placeholder="1000"
+                      class="w-24 bg-slate-900 border border-slate-700 rounded-lg pl-5 pr-2 py-1 text-xs text-white mono focus:outline-none focus:border-indigo-500">
+                  </div>
+
+                  <!-- Quick Presets -->
+                  <div class="hidden sm:flex items-center space-x-1">
+                    <button onclick="setPriceFilterPreset(500)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] mono border border-slate-700 cursor-pointer">₹500</button>
+                    <button onclick="setPriceFilterPreset(1000)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] mono border border-slate-700 cursor-pointer">₹1,000</button>
+                    <button onclick="setPriceFilterPreset(2000)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] mono border border-slate-700 cursor-pointer">₹2,000</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Filter Summary Indicator -->
+              <span id="price-filter-summary" class="text-[10px] mono text-slate-500">
+                Default: All price ranges eligible
+              </span>
+            </div>
+
+            <!-- Sector Filter Buttons -->
+            <div class="flex flex-wrap gap-1 text-[11px]">
+              <button onclick="setFilter('ALL')" id="flt-ALL" class="px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-medium cursor-pointer">All</button>
+              <button onclick="setFilter('INDEX')" id="flt-INDEX" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">Indices</button>
+              <button onclick="setFilter('BANK')" id="flt-BANK" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">Banking</button>
+              <button onclick="setFilter('IT')" id="flt-IT" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">IT</button>
+              <button onclick="setFilter('AUTO')" id="flt-AUTO" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">Auto</button>
+              <button onclick="setFilter('METAL')" id="flt-METAL" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">Metals</button>
+              <button onclick="setFilter('ENERGY')" id="flt-ENERGY" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">Energy</button>
+              <button onclick="setFilter('OTHER')" id="flt-OTHER" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">Defence/PSU/FMCG</button>
+            </div>
+          </div>
+
+          <div class="p-3 divide-y divide-slate-800/60 max-h-[460px] overflow-y-auto" id="scanner-list">
+            <!-- Populated dynamically with all 89 NSE stocks -->
+          </div>
+        </div>
+
+        <!-- Terminal Logs -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+          <div class="p-3.5 bg-slate-950 border-b border-slate-800 text-xs font-bold text-slate-300 uppercase tracking-wider flex justify-between">
+            <span>AI Decision Terminal</span>
+            <span class="text-[11px] mono text-slate-500">Realtime</span>
+          </div>
+          <div id="terminal-logs" class="p-3.5 mono text-[11px] h-60 overflow-y-auto space-y-1.5 bg-black text-slate-300">
+            <div class="text-slate-500">[System Ready] All 50+ NIFTY stocks active. Press START AI BOT.</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  <!-- Edit Position SL/TP Modal -->
+  <div id="modal-edit-sltp" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div class="p-4 bg-slate-800/80 border-b border-slate-700 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <span class="text-sm font-bold text-white">Edit Position SL & Target Profit</span>
+        </div>
+        <button onclick="closeEditSlTpModal()" class="text-slate-400 hover:text-white cursor-pointer text-xl font-bold leading-none">&times;</button>
+      </div>
+      
+      <div class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="edit-pos-id" value="">
+        
+        <!-- Position Details Header -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+          <div>
+            <div class="font-bold text-white text-sm" id="edit-pos-symbol">SYMBOL</div>
+            <div class="text-slate-400 text-[11px] mt-0.5">Qty: <b id="edit-pos-qty" class="text-slate-200 mono">--</b> • Entry: <b id="edit-pos-entry" class="text-slate-200 mono">₹--</b></div>
+          </div>
+          <div class="text-right">
+            <div class="text-slate-400 text-[10px]">Current LTP</div>
+            <div class="text-white font-bold mono text-sm" id="edit-pos-ltp">₹--</div>
+          </div>
+        </div>
+
+        <!-- Stop Loss Amount Input -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="font-medium text-slate-300">Stop Loss (₹ Amount)</label>
+            <span class="text-[10px] text-rose-400 font-bold mono">Max Loss</span>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-xs text-rose-400 font-bold mono">₹</span>
+            <input type="number" id="edit-pos-sl-amount" step="50" min="10" oninput="onEditModalInput()"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-sm mono text-white focus:outline-none focus:border-rose-500">
+          </div>
+          <div class="flex justify-between items-center mt-1 text-[11px]">
+            <span class="text-slate-400">Calculated SL Price:</span>
+            <span id="edit-preview-sl-price" class="font-bold text-rose-400 mono">₹--</span>
+          </div>
+        </div>
+
+        <!-- Target Profit Amount Input -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="font-medium text-slate-300">Target Profit (₹ Amount)</label>
+            <span id="edit-preview-rr" class="text-[10px] text-emerald-400 font-bold mono">1:2.0 R:R</span>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-xs text-emerald-400 font-bold mono">₹</span>
+            <input type="number" id="edit-pos-tp-amount" step="50" min="10" oninput="onEditModalInput()"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-sm mono text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div class="flex justify-between items-center mt-1 text-[11px]">
+            <span class="text-slate-400">Calculated Target Price:</span>
+            <span id="edit-preview-tp-price" class="font-bold text-emerald-400 mono">₹--</span>
+          </div>
+        </div>
+
+        <!-- Quick Amount Presets -->
+        <div class="pt-1">
+          <div class="text-[11px] text-slate-400 mb-1.5">Quick SL Presets:</div>
+          <div class="flex items-center space-x-2">
+            <button onclick="setModalSlPreset(500)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 mono font-semibold cursor-pointer">₹500</button>
+            <button onclick="setModalSlPreset(1000)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 mono font-semibold cursor-pointer">₹1,000</button>
+            <button onclick="setModalSlPreset(1500)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 mono font-semibold cursor-pointer">₹1,500</button>
+            <button onclick="setModalSlPreset(2000)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 mono font-semibold cursor-pointer">₹2,000</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <div class="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between space-x-2">
+        <button onclick="resetPositionToNormal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 cursor-pointer">
+          Reset to Normal SL/TP
+        </button>
+        <div class="flex items-center space-x-2">
+          <button onclick="closeEditSlTpModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer">
+            Cancel
+          </button>
+          <button onclick="savePositionSlTp()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer">
+            Update SL/TP
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Edit Positions SL/TP Modal (BUY or SELL) -->
+  <div id="modal-bulk-edit-sltp" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div id="bulk-modal-header" class="p-4 bg-slate-850 border-b border-slate-800 flex justify-between items-center transition-colors">
+        <div class="flex items-center space-x-2">
+          <span id="bulk-modal-icon" class="text-base font-bold">🟢</span>
+          <h3 id="bulk-modal-title" class="font-bold text-white text-sm">Edit SL & Target for BUY Positions</h3>
+        </div>
+        <button onclick="closeBulkEditSlTpModal()" class="text-slate-400 hover:text-white cursor-pointer text-xl font-bold leading-none">&times;</button>
+      </div>
+
+      <!-- Quick Side Toggle Tabs -->
+      <div class="px-5 pt-3.5 pb-1">
+        <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-xs font-semibold">
+          <button type="button" onclick="switchBulkModalSide('BUY')" id="bulk-tab-BUY" class="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white flex items-center justify-center space-x-1.5 transition cursor-pointer shadow-sm">
+            <span>🟢 BUY Trades (Long / CE)</span>
+          </button>
+          <button type="button" onclick="switchBulkModalSide('SELL')" id="bulk-tab-SELL" class="flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center justify-center space-x-1.5 transition cursor-pointer">
+            <span>🔴 SELL Trades (Short / PE)</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="p-5 space-y-4 text-xs">
+        <!-- Summary of targeted positions -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-slate-400">Affecting Active Stocks:</span>
+            <span id="bulk-edit-pos-count" class="font-bold text-emerald-400 mono">0 Stocks</span>
+          </div>
+          <div id="bulk-edit-symbols-list" class="text-[11px] text-slate-300 font-semibold flex flex-wrap gap-1.5 mt-1.5">
+            <!-- Populated dynamically with badges of open stocks for this side -->
+          </div>
+          <div class="text-[10px] text-slate-500 mt-2" id="bulk-edit-disclaimer">
+            * Immediately updates all active BUY stocks, and automatically applies to all newly entered BUY stocks.
+          </div>
+        </div>
+
+        <!-- Stop Loss Amount Input -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="font-medium text-slate-300" id="bulk-label-sl">Stop Loss (₹ Amount Per BUY Position)</label>
+            <span class="text-[10px] text-rose-400 font-bold mono">Max Loss</span>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-xs text-rose-400 font-bold mono">₹</span>
+            <input type="number" id="bulk-edit-sl-amount" step="50" min="10" oninput="onBulkEditModalInput()"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-sm mono text-white focus:outline-none focus:border-rose-500">
+          </div>
+          <div class="flex justify-between items-center mt-1 text-[11px]">
+            <span class="text-slate-400">Applies to each trade:</span>
+            <span id="bulk-preview-sl-text" class="font-bold text-rose-400 mono">-₹1,500</span>
+          </div>
+        </div>
+
+        <!-- Target Profit Amount Input -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="font-medium text-slate-300" id="bulk-label-tp">Target Profit (₹ Amount Per BUY Position)</label>
+            <span id="bulk-preview-rr" class="text-[10px] text-emerald-400 font-bold mono">1:2.0 R:R</span>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-xs text-emerald-400 font-bold mono">₹</span>
+            <input type="number" id="bulk-edit-tp-amount" step="50" min="10" oninput="onBulkEditModalInput()"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-sm mono text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div class="flex justify-between items-center mt-1 text-[11px]">
+            <span class="text-slate-400">Applies to each trade:</span>
+            <span id="bulk-preview-tp-text" class="font-bold text-emerald-400 mono">+₹3,000</span>
+          </div>
+        </div>
+
+        <!-- Quick Amount Presets -->
+        <div class="pt-1">
+          <div class="text-[11px] text-slate-400 mb-1.5">Quick SL Presets:</div>
+          <div class="flex items-center space-x-2">
+            <button onclick="setBulkModalSlPreset(500)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 mono font-semibold cursor-pointer">₹500</button>
+            <button onclick="setBulkModalSlPreset(1000)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 mono font-semibold cursor-pointer">₹1,000</button>
+            <button onclick="setBulkModalSlPreset(1500)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 mono font-semibold cursor-pointer">₹1,500</button>
+            <button onclick="setBulkModalSlPreset(2000)" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 mono font-semibold cursor-pointer">₹2,000</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <div class="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between space-x-2">
+        <button onclick="resetBulkPositionsToNormal()" id="bulk-btn-reset" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 cursor-pointer">
+          Reset BUY to Normal
+        </button>
+        <div class="flex items-center space-x-2">
+          <button onclick="closeBulkEditSlTpModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer">
+            Cancel
+          </button>
+          <button onclick="saveAllPositionsSlTp()" id="bulk-btn-save" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer">
+            Update BUY Stocks
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Live Server Synchronization with Python Backend
+    let isServerConnected = false;
+    let hasLoadedServerSettings = false;
+
+    let isRunning = false;
+    let initialCapital = 5000;
+    let currentCapital = 5000;
+    let dailyLossLimit = 1000;
+    let riskPerTradePct = 2.0;
+    let strategyStyle = 'TREND'; // 'SCALPER', 'TREND', 'SNIPER'
+    let killSwitchHit = false;
+    let currentFilter = 'ALL';
+    let isModelFilterActive = false; // Filter radar by active Strategy Model qualification
+    let editingPosition = null;
+
+    // Price Filter for Market Radar & Active Stock Selection (Default OFF: all amounts included)
+    let isPriceFilterActive = false;
+    let priceFilterCondition = 'HIGHER'; // 'HIGHER' (>=) or 'LOWER' (<=)
+    let priceFilterAmount = 1000;
+
+    // Elite Accuracy Filters (6 Institutional Confirmation Filters)
+    let niftyFilterActive = true;
+    let timeFilterActive = true;
+    let mtfFilterActive = true;
+    let emaFilterActive = true;
+    let vwapPullbackFilterActive = true;
+    let rvolFilterActive = true;
+    let maxVwapDistPct = 1.2;
+    let minRvolThreshold = 1.5;
+    let niftyTrend = 'BULLISH';
+    let timeWindowStatus = 'ACTIVE';
+    let timeWindowMsg = 'Prime Trading Window Active';
+
+    function toggleAccuracyFilter(type) {
+      if (type === 'nifty') {
+        niftyFilterActive = !niftyFilterActive;
+        addLog(`Accuracy Filter: NIFTY Trend Alignment turned ${niftyFilterActive ? 'ON' : 'OFF'}`, niftyFilterActive ? 'text-emerald-400 font-bold' : 'text-slate-400');
+      } else if (type === 'time') {
+        timeFilterActive = !timeFilterActive;
+        addLog(`Accuracy Filter: No-Trade Zone / Chop Protection turned ${timeFilterActive ? 'ON' : 'OFF'}`, timeFilterActive ? 'text-emerald-400 font-bold' : 'text-slate-400');
+      } else if (type === 'mtf') {
+        mtfFilterActive = !mtfFilterActive;
+        addLog(`Accuracy Filter: 15m Multi-Timeframe Alignment turned ${mtfFilterActive ? 'ON' : 'OFF'}`, mtfFilterActive ? 'text-emerald-400 font-bold' : 'text-slate-400');
+      } else if (type === 'ema') {
+        emaFilterActive = !emaFilterActive;
+        addLog(`Accuracy Filter: 9/20 EMA Dynamic Ribbon turned ${emaFilterActive ? 'ON' : 'OFF'}`, emaFilterActive ? 'text-emerald-400 font-bold' : 'text-slate-400');
+      } else if (type === 'vwap') {
+        vwapPullbackFilterActive = !vwapPullbackFilterActive;
+        addLog(`Accuracy Filter: VWAP Pullback Zone (≤1.2% VWAP) turned ${vwapPullbackFilterActive ? 'ON' : 'OFF'}`, vwapPullbackFilterActive ? 'text-emerald-400 font-bold' : 'text-slate-400');
+      } else if (type === 'rvol') {
+        rvolFilterActive = !rvolFilterActive;
+        addLog(`Accuracy Filter: Institutional RVOL Surge (≥1.5x) turned ${rvolFilterActive ? 'ON' : 'OFF'}`, rvolFilterActive ? 'text-emerald-400 font-bold' : 'text-slate-400');
+      }
+      updateAccuracyUI();
+      if (isServerConnected) {
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nifty_filter_active: niftyFilterActive,
+            time_filter_active: timeFilterActive,
+            mtf_filter_active: mtfFilterActive,
+            ema_filter_active: emaFilterActive,
+            vwap_pullback_filter_active: vwapPullbackFilterActive,
+            rvol_filter_active: rvolFilterActive
+          })
+        }).catch(() => {});
+      }
+      renderScannerList();
+    }
+
+    function updateAccuracyUI() {
+      // 1. NIFTY
+      const btnNifty = document.getElementById('btn-filter-nifty');
+      if (btnNifty) {
+        btnNifty.innerText = niftyFilterActive ? 'ON' : 'OFF';
+        btnNifty.className = niftyFilterActive ? "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm" : "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-slate-800 text-slate-400 hover:text-white";
+      }
+      const niftyBadge = document.getElementById('nifty-trend-badge');
+      if (niftyBadge) {
+        niftyBadge.innerText = niftyTrend;
+        niftyBadge.className = niftyTrend === 'BULLISH' ? "text-[9px] px-1.5 py-0.2 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-[9px] px-1.5 py-0.2 rounded font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30";
+      }
+      const shieldNiftyPill = document.getElementById('shield-nifty-pill');
+      if (shieldNiftyPill) {
+        shieldNiftyPill.innerText = `🌊 NIFTY: ${niftyTrend}`;
+        shieldNiftyPill.className = niftyTrend === 'BULLISH' ? "text-[10px] font-bold text-emerald-400" : "text-[10px] font-bold text-rose-400";
+      }
+
+      // 2. TIME
+      const btnTime = document.getElementById('btn-filter-time');
+      if (btnTime) {
+        btnTime.innerText = timeFilterActive ? 'ON' : 'OFF';
+        btnTime.className = timeFilterActive ? "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm" : "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-slate-800 text-slate-400 hover:text-white";
+      }
+      const timeBadge = document.getElementById('time-window-badge');
+      if (timeBadge) {
+        timeBadge.innerText = timeWindowStatus;
+        timeBadge.className = timeWindowStatus === 'ACTIVE' ? "text-[9px] px-1.5 py-0.2 rounded font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" : "text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse";
+      }
+      const shieldTimePill = document.getElementById('shield-time-pill');
+      if (shieldTimePill) {
+        shieldTimePill.innerText = `⏰ Window: ${timeWindowStatus}`;
+        shieldTimePill.className = timeWindowStatus === 'ACTIVE' ? "text-[10px] font-bold text-indigo-300" : "text-[10px] font-bold text-amber-400";
+      }
+
+      // 3. MTF
+      const btnMtf = document.getElementById('btn-filter-mtf');
+      if (btnMtf) {
+        btnMtf.innerText = mtfFilterActive ? 'ON' : 'OFF';
+        btnMtf.className = mtfFilterActive ? "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm" : "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-slate-800 text-slate-400 hover:text-white";
+      }
+
+      // 4. EMA
+      const btnEma = document.getElementById('btn-filter-ema');
+      if (btnEma) {
+        btnEma.innerText = emaFilterActive ? 'ON' : 'OFF';
+        btnEma.className = emaFilterActive ? "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm" : "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-slate-800 text-slate-400 hover:text-white";
+      }
+
+      // 5. VWAP Pullback Zone (Dynamic to active strategy model)
+      const currentStratProfile = STRATEGY_PROFILES[strategyStyle] || STRATEGY_PROFILES.TREND;
+      const vwapBadge = document.getElementById('vwap-filter-badge');
+      if (vwapBadge) {
+        vwapBadge.innerText = `≤${currentStratProfile.maxVwapDist}% VWAP`;
+      }
+      const btnVwap = document.getElementById('btn-filter-vwap');
+      if (btnVwap) {
+        btnVwap.innerText = vwapPullbackFilterActive ? 'ON' : 'OFF';
+        btnVwap.className = vwapPullbackFilterActive ? "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm" : "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-slate-800 text-slate-400 hover:text-white";
+      }
+
+      // 6. Institutional RVOL Surge (Dynamic to active strategy model)
+      const rvolBadge = document.getElementById('rvol-filter-badge');
+      if (rvolBadge) {
+        rvolBadge.innerText = `RVOL ≥ ${currentStratProfile.minRvol}x`;
+      }
+      const btnRvol = document.getElementById('btn-filter-rvol');
+      if (btnRvol) {
+        btnRvol.innerText = rvolFilterActive ? 'ON' : 'OFF';
+        btnRvol.className = rvolFilterActive ? "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm" : "px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer bg-slate-800 text-slate-400 hover:text-white";
+      }
+    }
+
+    // Brokerage Shield & Trade Frequency Limiter
+    let maxDailyTrades = 10; // Default max 10 trades per day to prevent high brokerage
+    let brokeragePerTrade = 20; // Estimated brokerage & taxes per trade (₹20 per order)
+
+    // Persistent custom SL / TP override for active & upcoming new stocks (BUY and SELL independent)
+    let customTradeSl = null;
+    let customTradeTp = null;
+    let customBuySl = null;
+    let customBuyTp = null;
+    let customSellSl = null;
+    let customSellTp = null;
+    let currentBulkSide = 'BUY'; // 'BUY' or 'SELL'
+
+    function getTradeSide(pos) {
+      if (!pos) return 'BUY';
+      if (pos.type === 'SELL') return 'SELL';
+      if (pos.isOption && pos.symbol && pos.symbol.includes('PE')) return 'SELL';
+      if (pos.reason && pos.reason.toLowerCase().includes('pe')) return 'SELL';
+      return 'BUY';
+    }
+
+    function getNormalSlAmount() {
+      return Math.round((initialCapital * riskPerTradePct) / 100);
+    }
+
+    function getNormalTpAmount() {
+      const sl = getNormalSlAmount();
+      const rr = STRATEGY_PROFILES[strategyStyle]?.rrRatio || 2.0;
+      return Math.round(sl * rr);
+    }
+
+    function getEffectiveSlAmount(side = 'BUY') {
+      if (side === 'BUY') {
+        if (customBuySl !== null && customBuySl > 0) return Math.round(customBuySl);
+      } else {
+        if (customSellSl !== null && customSellSl > 0) return Math.round(customSellSl);
+      }
+      if (customTradeSl !== null && customTradeSl > 0) return Math.round(customTradeSl);
+      return getNormalSlAmount();
+    }
+
+    function getEffectiveTpAmount(side = 'BUY') {
+      if (side === 'BUY') {
+        if (customBuyTp !== null && customBuyTp > 0) return Math.round(customBuyTp);
+        if (customBuySl !== null && customBuySl > 0) {
+          const rr = STRATEGY_PROFILES[strategyStyle]?.rrRatio || 2.0;
+          return Math.round(customBuySl * rr);
+        }
+      } else {
+        if (customSellTp !== null && customSellTp > 0) return Math.round(customSellTp);
+        if (customSellSl !== null && customSellSl > 0) {
+          const rr = STRATEGY_PROFILES[strategyStyle]?.rrRatio || 2.0;
+          return Math.round(customSellSl * rr);
+        }
+      }
+      if (customTradeTp !== null && customTradeTp > 0) return Math.round(customTradeTp);
+      if (customTradeSl !== null && customTradeSl > 0) {
+        const rr = STRATEGY_PROFILES[strategyStyle]?.rrRatio || 2.0;
+        return Math.round(customTradeSl * rr);
+      }
+      return getNormalTpAmount();
+    }
+
+    const STRATEGY_PROFILES = {
+      SCALPER: {
+        name: '⚡ Quick Scalper',
+        minScore: 70,
+        maxBearScore: 30,
+        minRvol: 1.1,
+        maxVwapDist: 2.0,
+        rrRatio: 1.5,
+        badgeDesc: '⚡ Quick Scalper: 1:1.5 R:R • BUY ≥ 70% | SELL ≤ 30% (Short) • Rapid Exits',
+        badgeClass: 'bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium',
+        optSl: 0.92,   // -8% SL
+        optTp: 1.12,   // +12% TP
+        eqSl: 0.996,   // -0.4% SL
+        eqTp: 1.008,   // +0.8% TP
+        trailTrigger: 1.008,
+        trailDistance: 0.995,
+        tag: 'SCALP'
+      },
+      TREND: {
+        name: '🏄 Trend Rider',
+        minScore: 75,
+        maxBearScore: 25,
+        minRvol: 1.3,
+        maxVwapDist: 1.5,
+        rrRatio: 2.0,
+        badgeDesc: '🏄 Trend Rider: 1:2 R:R • BUY ≥ 75% | SELL ≤ 25% (Short) • Trailing Stop Active',
+        badgeClass: 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium',
+        optSl: 0.85,   // -15% SL
+        optTp: 1.30,   // +30% TP
+        eqSl: 0.993,   // -0.7% SL
+        eqTp: 1.015,   // +1.5% TP
+        trailTrigger: 1.015,
+        trailDistance: 0.985,
+        tag: 'TREND'
+      },
+      SNIPER: {
+        name: '🎯 Safe Sniper',
+        minScore: 85,
+        maxBearScore: 15,
+        minRvol: 1.5,      // Strict Volume Surge
+        maxVwapDist: 1.2,  // Strict Pullback Zone (<=1.2% from VWAP)
+        rrRatio: 3.0,
+        badgeDesc: '🎯 Safe Sniper: 1:3 R:R • BUY ≥ 85% | RVOL ≥ 1.5x | VWAP Pullback ≤1.2% • High Confirmation',
+        badgeClass: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium',
+        optSl: 0.88,   // -12% SL
+        optTp: 1.35,   // +35% TP
+        eqSl: 0.995,   // -0.5% SL
+        eqTp: 1.018,   // +1.8% TP
+        trailTrigger: 1.012,
+        trailDistance: 0.990,
+        tag: 'SNIPER'
+      }
+    };
+
+    let tradeDirection = 'BOTH'; // 'BOTH', 'BUY_ONLY', 'SELL_ONLY'
+    let realizedPnl = 0;
+    let unrealizedPnl = 0;
+    let totalTrades = 0;
+    let winTrades = 0;
+
+    let positions = [];
+    let history = [];
+    let logs = [];
+
+    // Master Dictionary of Popular Indian NSE Stocks for Autocomplete Search
+    const NSE_DIRECTORY = [
+      // Tech & New Age
+      { symbol: 'ZOMATO', name: 'Zomato Ltd', sector: 'OTHER', price: 275.0 },
+      { symbol: 'PAYTM', name: 'One97 Communications (Paytm)', sector: 'OTHER', price: 1641.80 },
+      { symbol: 'NYKAA', name: 'FSN E-Commerce (Nykaa)', sector: 'OTHER', price: 185.0 },
+      { symbol: 'POLICYBZR', name: 'PB Fintech (PolicyBazaar)', sector: 'OTHER', price: 1750.0 },
+      { symbol: 'SWIGGY', name: 'Swiggy Ltd', sector: 'OTHER', price: 540.0 },
+      { symbol: 'DELHIVERY', name: 'Delhivery Ltd', sector: 'OTHER', price: 395.0 },
+      { symbol: 'JIOFIN', name: 'Jio Financial Services', sector: 'BANK', price: 320.0 },
+
+      // Railway & Defence
+      { symbol: 'IRCTC', name: 'Indian Railway Catering & Tourism', sector: 'OTHER', price: 890.0 },
+      { symbol: 'RVNL', name: 'Rail Vikas Nigam Ltd', sector: 'OTHER', price: 460.0 },
+      { symbol: 'IRFC', name: 'Indian Railway Finance Corp', sector: 'BANK', price: 165.0 },
+      { symbol: 'RAILTEL', name: 'RailTel Corporation of India', sector: 'OTHER', price: 410.0 },
+      { symbol: 'BEL', name: 'Bharat Electronics Ltd', sector: 'OTHER', price: 385.80 },
+      { symbol: 'HAL', name: 'Hindustan Aeronautics Ltd', sector: 'OTHER', price: 4763.90 },
+      { symbol: 'MAZDOCK', name: 'Mazagon Dock Shipbuilders', sector: 'OTHER', price: 4400.0 },
+      { symbol: 'COCHINSHIP', name: 'Cochin Shipyard Ltd', sector: 'OTHER', price: 1550.0 },
+      { symbol: 'BHEL', name: 'Bharat Heavy Electricals Ltd', sector: 'OTHER', price: 410.00 },
+
+      // Green Energy & Infra
+      { symbol: 'IREDA', name: 'Indian Renewable Energy Dev Agency', sector: 'BANK', price: 112.65 },
+      { symbol: 'SUZLON', name: 'Suzlon Energy Ltd', sector: 'ENERGY', price: 39.99 },
+      { symbol: 'DLF', name: 'DLF Limited', sector: 'OTHER', price: 668.55 },
+      { symbol: 'GODREJPROP', name: 'Godrej Properties Ltd', sector: 'OTHER', price: 2850.0 },
+      { symbol: 'LODHA', name: 'Macrotech Developers (Lodha)', sector: 'OTHER', price: 1250.0 },
+
+      // PSU Giants
+      { symbol: 'PFC', name: 'Power Finance Corporation', sector: 'BANK', price: 480.0 },
+      { symbol: 'RECLTD', name: 'REC Limited', sector: 'BANK', price: 520.0 },
+      { symbol: 'SAIL', name: 'Steel Authority of India Ltd', sector: 'METAL', price: 125.0 },
+      { symbol: 'NMDC', name: 'NMDC Limited', sector: 'METAL', price: 220.0 },
+      { symbol: 'VEDL', name: 'Vedanta Limited', sector: 'METAL', price: 470.0 },
+      { symbol: 'GAIL', name: 'GAIL (India) Ltd', sector: 'ENERGY', price: 205.0 },
+      { symbol: 'IOC', name: 'Indian Oil Corporation', sector: 'ENERGY', price: 145.0 },
+      { symbol: 'NHPC', name: 'NHPC Limited', sector: 'ENERGY', price: 88.0 },
+
+      // Top Banking
+      { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd', sector: 'BANK', price: 720.15 },
+      { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd', sector: 'BANK', price: 1303.30 },
+      { symbol: 'SBIN', name: 'State Bank of India', sector: 'BANK', price: 965.80 },
+      { symbol: 'AXISBANK', name: 'Axis Bank Ltd', sector: 'BANK', price: 1208.20 },
+      { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', sector: 'BANK', price: 396.75 },
+      { symbol: 'BAJFINANCE', name: 'Bajaj Finance Ltd', sector: 'BANK', price: 977.40 },
+      { symbol: 'BAJAJFINSV', name: 'Bajaj Finserv Ltd', sector: 'BANK', price: 1680.0 },
+      { symbol: 'INDUSINDBK', name: 'IndusInd Bank Ltd', sector: 'BANK', price: 1420.0 },
+      { symbol: 'BANKBARODA', name: 'Bank of Baroda', sector: 'BANK', price: 250.0 },
+      { symbol: 'PNB', name: 'Punjab National Bank', sector: 'BANK', price: 105.0 },
+      { symbol: 'CANBK', name: 'Canara Bank', sector: 'BANK', price: 102.0 },
+      { symbol: 'IDFCFIRSTB', name: 'IDFC First Bank', sector: 'BANK', price: 72.0 },
+      { symbol: 'YESBANK', name: 'Yes Bank Ltd', sector: 'BANK', price: 21.0 },
+
+      // IT Giants
+      { symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT', price: 2057.50 },
+      { symbol: 'INFY', name: 'Infosys Limited', sector: 'IT', price: 988.70 },
+      { symbol: 'WIPRO', name: 'Wipro Limited', sector: 'IT', price: 161.48 },
+      { symbol: 'HCLTECH', name: 'HCL Technologies Ltd', sector: 'IT', price: 1760.0 },
+      { symbol: 'TECHM', name: 'Tech Mahindra Ltd', sector: 'IT', price: 1580.0 },
+      { symbol: 'LTIM', name: 'LTIMindtree Ltd', sector: 'IT', price: 5950.0 },
+      { symbol: 'PERSISTENT', name: 'Persistent Systems Ltd', sector: 'IT', price: 5450.0 },
+      { symbol: 'COFORGE', name: 'Coforge Limited', sector: 'IT', price: 7850.0 },
+
+      // Auto Giants
+      { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd', sector: 'AUTO', price: 975.0 },
+      { symbol: 'MARUTI', name: 'Maruti Suzuki India', sector: 'AUTO', price: 12014.00 },
+      { symbol: 'MM', name: 'Mahindra & Mahindra Ltd', sector: 'AUTO', price: 3001.90 },
+      { symbol: 'M&M', name: 'Mahindra & Mahindra Ltd', sector: 'AUTO', price: 3001.90 },
+      { symbol: 'BAJAJ-AUTO', name: 'Bajaj Auto Ltd', sector: 'AUTO', price: 9800.0 },
+      { symbol: 'HEROMOTOCO', name: 'Hero MotoCorp Ltd', sector: 'AUTO', price: 5200.0 },
+      { symbol: 'EICHERMOT', name: 'Eicher Motors Ltd', sector: 'AUTO', price: 4750.0 },
+      { symbol: 'TVSMOTOR', name: 'TVS Motor Company', sector: 'AUTO', price: 2450.0 },
+
+      // Energy & Metals
+      { symbol: 'RELIANCE', name: 'Reliance Industries Ltd', sector: 'ENERGY', price: 1207.80 },
+      { symbol: 'NTPC', name: 'NTPC Limited', sector: 'ENERGY', price: 322.50 },
+      { symbol: 'ONGC', name: 'Oil & Natural Gas Corp', sector: 'ENERGY', price: 232.90 },
+      { symbol: 'POWERGRID', name: 'Power Grid Corporation', sector: 'ENERGY', price: 265.65 },
+      { symbol: 'BPCL', name: 'Bharat Petroleum Corp', sector: 'ENERGY', price: 360.0 },
+      { symbol: 'COALINDIA', name: 'Coal India Ltd', sector: 'METAL', price: 427.60 },
+      { symbol: 'TATASTEEL', name: 'Tata Steel Ltd', sector: 'METAL', price: 187.55 },
+      { symbol: 'JSWSTEEL', name: 'JSW Steel Ltd', sector: 'METAL', price: 1264.50 },
+      { symbol: 'HINDALCO', name: 'Hindalco Industries', sector: 'METAL', price: 962.10 },
+      { symbol: 'JINDALSTEL', name: 'Jindal Steel & Power', sector: 'METAL', price: 980.0 },
+
+      // FMCG, Retail & Conglomerates
+      { symbol: 'ITC', name: 'ITC Limited', sector: 'OTHER', price: 265.85 },
+      { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd', sector: 'OTHER', price: 2750.0 },
+      { symbol: 'TITAN', name: 'Titan Company Ltd', sector: 'OTHER', price: 4838.50 },
+      { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd', sector: 'OTHER', price: 3120.0 },
+      { symbol: 'NESTLEIND', name: 'Nestle India Ltd', sector: 'OTHER', price: 2520.0 },
+      { symbol: 'BRITANNIA', name: 'Britannia Industries Ltd', sector: 'OTHER', price: 5800.0 },
+      { symbol: 'TRENT', name: 'Trent Limited (Westside/Zudio)', sector: 'OTHER', price: 6950.0 },
+      { symbol: 'DMART', name: 'Avenue Supermarts (DMart)', sector: 'OTHER', price: 4100.0 },
+      { symbol: 'LT', name: 'Larsen & Toubro Ltd', sector: 'OTHER', price: 3822.60 },
+      { symbol: 'ADANIENT', name: 'Adani Enterprises Ltd', sector: 'OTHER', price: 2848.70 },
+      { symbol: 'ADANIPORTS', name: 'Adani Ports & SEZ', sector: 'OTHER', price: 1450.0 },
+      { symbol: 'ADANIGREEN', name: 'Adani Green Energy Ltd', sector: 'ENERGY', price: 1250.0 },
+      { symbol: 'ADANIPOWER', name: 'Adani Power Ltd', sector: 'ENERGY', price: 580.0 },
+      { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd', sector: 'OTHER', price: 1770.20 },
+
+      // Pharma
+      { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical Ind', sector: 'OTHER', price: 1844.10 },
+      { symbol: 'CIPLA', name: 'Cipla Limited', sector: 'OTHER', price: 1390.00 },
+      { symbol: 'DRREDDY', name: "Dr. Reddy's Laboratories", sector: 'OTHER', price: 6700.0 },
+      { symbol: 'APOLLOHOSP', name: 'Apollo Hospitals Enterprise', sector: 'OTHER', price: 7100.0 },
+      { symbol: 'DIVISLAB', name: "Divi's Laboratories Ltd", sector: 'OTHER', price: 5800.0 }
+    ];
+
+    // Initial Active Radar Universe with Real Current Market Prices
+    let universe = [
+      { id: 'BANKNIFTY', name: 'BANK NIFTY', type: 'INDEX', sector: 'INDEX', price: 54547.50, vwap: 54447.32, score: 40, pattern: 'Holding Above VWAP', rvol: 1.89, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'FINNIFTY', name: 'FIN NIFTY', type: 'INDEX', sector: 'INDEX', price: 24850.00, vwap: 24863.19, score: 60, pattern: 'Day High Consolidation', rvol: 1.88, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'NIFTY', name: 'NIFTY 50', type: 'INDEX', sector: 'INDEX', price: 22824.65, vwap: 22777.63, score: 57, pattern: 'ORB Breakout Setup', rvol: 1.71, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'BAJAJ-AUTO', name: 'Bajaj Auto Ltd', type: 'EQUITY', sector: 'AUTO', price: 9800.00, vwap: 9817.73, score: 42, pattern: 'Bull Flag Continuation', rvol: 1.26, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'EICHERMOT', name: 'Eicher Motors Ltd', type: 'EQUITY', sector: 'AUTO', price: 4750.00, vwap: 4745.10, score: 53, pattern: 'Ascending Triangle', rvol: 1.67, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'HEROMOTOCO', name: 'Hero MotoCorp Ltd', type: 'EQUITY', sector: 'AUTO', price: 5200.00, vwap: 5188.06, score: 78, pattern: 'VWAP Bounce + Hammer', rvol: 1.26, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'MARUTI', name: 'Maruti Suzuki India', type: 'EQUITY', sector: 'AUTO', price: 12014.00, vwap: 11995.55, score: 40, pattern: 'Bullish Engulfing 5m', rvol: 1.91, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'MM', name: 'Mahindra & Mahindra Ltd', type: 'EQUITY', sector: 'AUTO', price: 3001.90, vwap: 3005.03, score: 79, pattern: 'Support Holding', rvol: 1.41, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'TATAMOTORS', name: 'Tata Motors Ltd', type: 'EQUITY', sector: 'AUTO', price: 975.00, vwap: 976.04, score: 73, pattern: 'Ascending Channel', rvol: 1.12, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'TVSMOTOR', name: 'TVS Motor Company', type: 'EQUITY', sector: 'AUTO', price: 2450.00, vwap: 2449.32, score: 51, pattern: 'Inside Bar Range', rvol: 2.02, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'AXISBANK', name: 'Axis Bank Ltd', type: 'EQUITY', sector: 'BANK', price: 1208.20, vwap: 1206.24, score: 54, pattern: 'Testing Day High', rvol: 1.88, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'BAJAJFINSV', name: 'Bajaj Finserv Ltd', type: 'EQUITY', sector: 'BANK', price: 1680.00, vwap: 1677.95, score: 76, pattern: 'Holding Above VWAP', rvol: 1.09, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'BAJFINANCE', name: 'Bajaj Finance Ltd', type: 'EQUITY', sector: 'BANK', price: 977.40, vwap: 977.64, score: 51, pattern: 'Day High Consolidation', rvol: 1.69, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'BANKBARODA', name: 'Bank of Baroda', type: 'EQUITY', sector: 'BANK', price: 250.00, vwap: 249.44, score: 54, pattern: 'ORB Breakout Setup', rvol: 1.79, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'CANBK', name: 'Canara Bank', type: 'EQUITY', sector: 'BANK', price: 102.00, vwap: 101.73, score: 57, pattern: 'Bull Flag Continuation', rvol: 2.03, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'HDFCBANK', name: 'HDFC Bank Ltd', type: 'EQUITY', sector: 'BANK', price: 720.15, vwap: 717.85, score: 52, pattern: 'Ascending Triangle', rvol: 1.33, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'ICICIBANK', name: 'ICICI Bank Ltd', type: 'EQUITY', sector: 'BANK', price: 1303.30, vwap: 1300.94, score: 75, pattern: 'VWAP Bounce + Hammer', rvol: 1.2, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'IDFCFIRSTB', name: 'IDFC First Bank', type: 'EQUITY', sector: 'BANK', price: 72.00, vwap: 71.99, score: 69, pattern: 'Bullish Engulfing 5m', rvol: 1.84, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'INDUSINDBK', name: 'IndusInd Bank Ltd', type: 'EQUITY', sector: 'BANK', price: 1420.00, vwap: 1417.02, score: 42, pattern: 'Support Holding', rvol: 1.73, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'IREDA', name: 'Indian Renewable Energy Dev Agency', type: 'EQUITY', sector: 'BANK', price: 112.65, vwap: 112.76, score: 67, pattern: 'Ascending Channel', rvol: 1.2, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'IRFC', name: 'Indian Railway Finance Corp', type: 'EQUITY', sector: 'BANK', price: 165.00, vwap: 164.95, score: 66, pattern: 'Inside Bar Range', rvol: 1.82, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'JIOFIN', name: 'Jio Financial Services', type: 'EQUITY', sector: 'BANK', price: 320.00, vwap: 319.02, score: 41, pattern: 'Testing Day High', rvol: 1.27, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'KOTAKBANK', name: 'Kotak Mahindra Bank', type: 'EQUITY', sector: 'BANK', price: 396.75, vwap: 397.47, score: 72, pattern: 'Holding Above VWAP', rvol: 1.48, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'PFC', name: 'Power Finance Corporation', type: 'EQUITY', sector: 'BANK', price: 480.00, vwap: 480.77, score: 72, pattern: 'Day High Consolidation', rvol: 1.26, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'PNB', name: 'Punjab National Bank', type: 'EQUITY', sector: 'BANK', price: 105.00, vwap: 104.90, score: 54, pattern: 'ORB Breakout Setup', rvol: 1.17, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'RECLTD', name: 'REC Limited', type: 'EQUITY', sector: 'BANK', price: 520.00, vwap: 520.60, score: 68, pattern: 'Bull Flag Continuation', rvol: 1.9, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'SBIN', name: 'State Bank of India', type: 'EQUITY', sector: 'BANK', price: 965.80, vwap: 965.25, score: 77, pattern: 'Ascending Triangle', rvol: 1.43, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'YESBANK', name: 'Yes Bank Ltd', type: 'EQUITY', sector: 'BANK', price: 21.00, vwap: 20.92, score: 44, pattern: 'VWAP Bounce + Hammer', rvol: 1.61, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'ADANIGREEN', name: 'Adani Green Energy Ltd', type: 'EQUITY', sector: 'ENERGY', price: 1250.00, vwap: 1251.82, score: 55, pattern: 'Bullish Engulfing 5m', rvol: 2.03, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'ADANIPOWER', name: 'Adani Power Ltd', type: 'EQUITY', sector: 'ENERGY', price: 580.00, vwap: 580.63, score: 62, pattern: 'Support Holding', rvol: 1.95, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'BPCL', name: 'Bharat Petroleum Corp', type: 'EQUITY', sector: 'ENERGY', price: 360.00, vwap: 359.81, score: 42, pattern: 'Ascending Channel', rvol: 1.46, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'GAIL', name: 'GAIL (India) Ltd', type: 'EQUITY', sector: 'ENERGY', price: 205.00, vwap: 204.68, score: 81, pattern: 'Inside Bar Range', rvol: 1.63, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'IOC', name: 'Indian Oil Corporation', type: 'EQUITY', sector: 'ENERGY', price: 145.00, vwap: 144.45, score: 52, pattern: 'Testing Day High', rvol: 1.82, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'NHPC', name: 'NHPC Limited', type: 'EQUITY', sector: 'ENERGY', price: 88.00, vwap: 88.12, score: 48, pattern: 'Holding Above VWAP', rvol: 1.92, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'NTPC', name: 'NTPC Limited', type: 'EQUITY', sector: 'ENERGY', price: 322.50, vwap: 322.49, score: 70, pattern: 'Day High Consolidation', rvol: 1.52, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'ONGC', name: 'Oil & Natural Gas Corp', type: 'EQUITY', sector: 'ENERGY', price: 232.90, vwap: 232.73, score: 68, pattern: 'ORB Breakout Setup', rvol: 2.17, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'POWERGRID', name: 'Power Grid Corporation', type: 'EQUITY', sector: 'ENERGY', price: 265.65, vwap: 264.97, score: 43, pattern: 'Bull Flag Continuation', rvol: 2.04, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'RELIANCE', name: 'Reliance Industries Ltd', type: 'EQUITY', sector: 'ENERGY', price: 1207.80, vwap: 1208.05, score: 84, pattern: 'Ascending Triangle', rvol: 1.73, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'SUZLON', name: 'Suzlon Energy Ltd', type: 'EQUITY', sector: 'ENERGY', price: 39.99, vwap: 40.03, score: 62, pattern: 'VWAP Bounce + Hammer', rvol: 1.65, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'COFORGE', name: 'Coforge Limited', type: 'EQUITY', sector: 'IT', price: 7850.00, vwap: 7829.03, score: 40, pattern: 'Bullish Engulfing 5m', rvol: 1.72, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'HCLTECH', name: 'HCL Technologies Ltd', type: 'EQUITY', sector: 'IT', price: 1760.00, vwap: 1758.36, score: 59, pattern: 'Support Holding', rvol: 2.11, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'INFY', name: 'Infosys Limited', type: 'EQUITY', sector: 'IT', price: 988.70, vwap: 985.46, score: 71, pattern: 'Ascending Channel', rvol: 1.29, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'LTIM', name: 'LTIMindtree Ltd', type: 'EQUITY', sector: 'IT', price: 5950.00, vwap: 5953.30, score: 42, pattern: 'Inside Bar Range', rvol: 1.1, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'PERSISTENT', name: 'Persistent Systems Ltd', type: 'EQUITY', sector: 'IT', price: 5450.00, vwap: 5445.01, score: 56, pattern: 'Testing Day High', rvol: 2.17, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'TCS', name: 'Tata Consultancy Services', type: 'EQUITY', sector: 'IT', price: 2057.50, vwap: 2055.04, score: 60, pattern: 'Holding Above VWAP', rvol: 1.15, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'TECHM', name: 'Tech Mahindra Ltd', type: 'EQUITY', sector: 'IT', price: 1580.00, vwap: 1578.65, score: 45, pattern: 'Day High Consolidation', rvol: 1.32, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'WIPRO', name: 'Wipro Limited', type: 'EQUITY', sector: 'IT', price: 161.48, vwap: 160.96, score: 79, pattern: 'ORB Breakout Setup', rvol: 2.16, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'COALINDIA', name: 'Coal India Ltd', type: 'EQUITY', sector: 'METAL', price: 427.60, vwap: 426.07, score: 64, pattern: 'Bull Flag Continuation', rvol: 1.86, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'HINDALCO', name: 'Hindalco Industries', type: 'EQUITY', sector: 'METAL', price: 962.10, vwap: 961.72, score: 51, pattern: 'Ascending Triangle', rvol: 1.53, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'JINDALSTEL', name: 'Jindal Steel & Power', type: 'EQUITY', sector: 'METAL', price: 980.00, vwap: 978.92, score: 59, pattern: 'VWAP Bounce + Hammer', rvol: 1.3, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'JSWSTEEL', name: 'JSW Steel Ltd', type: 'EQUITY', sector: 'METAL', price: 1264.50, vwap: 1266.54, score: 53, pattern: 'Bullish Engulfing 5m', rvol: 1.71, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'NMDC', name: 'NMDC Limited', type: 'EQUITY', sector: 'METAL', price: 220.00, vwap: 220.14, score: 47, pattern: 'Support Holding', rvol: 1.01, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'SAIL', name: 'Steel Authority of India Ltd', type: 'EQUITY', sector: 'METAL', price: 125.00, vwap: 124.72, score: 55, pattern: 'Ascending Channel', rvol: 1.27, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'TATASTEEL', name: 'Tata Steel Ltd', type: 'EQUITY', sector: 'METAL', price: 187.55, vwap: 186.91, score: 73, pattern: 'Inside Bar Range', rvol: 1.09, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'VEDL', name: 'Vedanta Limited', type: 'EQUITY', sector: 'METAL', price: 470.00, vwap: 470.27, score: 55, pattern: 'Testing Day High', rvol: 1.26, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'ADANIENT', name: 'Adani Enterprises Ltd', type: 'EQUITY', sector: 'OTHER', price: 2848.70, vwap: 2852.14, score: 82, pattern: 'Holding Above VWAP', rvol: 1.29, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'ADANIPORTS', name: 'Adani Ports & SEZ', type: 'EQUITY', sector: 'OTHER', price: 1450.00, vwap: 1448.79, score: 78, pattern: 'Day High Consolidation', rvol: 1.23, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'APOLLOHOSP', name: 'Apollo Hospitals Enterprise', type: 'EQUITY', sector: 'OTHER', price: 7100.00, vwap: 7110.07, score: 53, pattern: 'ORB Breakout Setup', rvol: 1.43, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'ASIANPAINT', name: 'Asian Paints Ltd', type: 'EQUITY', sector: 'OTHER', price: 3120.00, vwap: 3118.54, score: 55, pattern: 'Bull Flag Continuation', rvol: 1.81, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'BEL', name: 'Bharat Electronics Ltd', type: 'EQUITY', sector: 'OTHER', price: 385.80, vwap: 384.29, score: 58, pattern: 'Ascending Triangle', rvol: 1.07, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'BHARTIARTL', name: 'Bharti Airtel Ltd', type: 'EQUITY', sector: 'OTHER', price: 1770.20, vwap: 1766.01, score: 43, pattern: 'VWAP Bounce + Hammer', rvol: 1.3, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'BHEL', name: 'Bharat Heavy Electricals Ltd', type: 'EQUITY', sector: 'OTHER', price: 410.00, vwap: 410.35, score: 80, pattern: 'Bullish Engulfing 5m', rvol: 1.17, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'BRITANNIA', name: 'Britannia Industries Ltd', type: 'EQUITY', sector: 'OTHER', price: 5800.00, vwap: 5805.21, score: 81, pattern: 'Support Holding', rvol: 1.3, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'CIPLA', name: 'Cipla Limited', type: 'EQUITY', sector: 'OTHER', price: 1390.00, vwap: 1385.08, score: 54, pattern: 'Ascending Channel', rvol: 1.97, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'COCHINSHIP', name: 'Cochin Shipyard Ltd', type: 'EQUITY', sector: 'OTHER', price: 1550.00, vwap: 1545.14, score: 58, pattern: 'Inside Bar Range', rvol: 1.06, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'DELHIVERY', name: 'Delhivery Ltd', type: 'EQUITY', sector: 'OTHER', price: 395.00, vwap: 393.42, score: 52, pattern: 'Testing Day High', rvol: 2.16, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'DIVISLAB', name: 'Divi\'s Laboratories Ltd', type: 'EQUITY', sector: 'OTHER', price: 5800.00, vwap: 5779.36, score: 47, pattern: 'Holding Above VWAP', rvol: 1.2, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'DLF', name: 'DLF Limited', type: 'EQUITY', sector: 'OTHER', price: 668.55, vwap: 667.94, score: 65, pattern: 'Day High Consolidation', rvol: 2.04, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'DMART', name: 'Avenue Supermarts (DMart)', type: 'EQUITY', sector: 'OTHER', price: 4100.00, vwap: 4086.00, score: 62, pattern: 'ORB Breakout Setup', rvol: 1.45, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'DRREDDY', name: 'Dr. Reddy\'s Laboratories', type: 'EQUITY', sector: 'OTHER', price: 6700.00, vwap: 6673.79, score: 48, pattern: 'Bull Flag Continuation', rvol: 2.11, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'GODREJPROP', name: 'Godrej Properties Ltd', type: 'EQUITY', sector: 'OTHER', price: 2850.00, vwap: 2842.27, score: 70, pattern: 'Ascending Triangle', rvol: 1.51, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'HAL', name: 'Hindustan Aeronautics Ltd', type: 'EQUITY', sector: 'OTHER', price: 4763.90, vwap: 4746.06, score: 83, pattern: 'VWAP Bounce + Hammer', rvol: 1.19, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'HINDUNILVR', name: 'Hindustan Unilever Ltd', type: 'EQUITY', sector: 'OTHER', price: 2750.00, vwap: 2750.60, score: 41, pattern: 'Bullish Engulfing 5m', rvol: 1.7, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'IRCTC', name: 'Indian Railway Catering & Tourism', type: 'EQUITY', sector: 'OTHER', price: 890.00, vwap: 888.88, score: 72, pattern: 'Support Holding', rvol: 1.07, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'ITC', name: 'ITC Limited', type: 'EQUITY', sector: 'OTHER', price: 265.85, vwap: 265.45, score: 84, pattern: 'Ascending Channel', rvol: 2.1, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'LODHA', name: 'Macrotech Developers (Lodha)', type: 'EQUITY', sector: 'OTHER', price: 1250.00, vwap: 1248.52, score: 41, pattern: 'Inside Bar Range', rvol: 2.15, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'LT', name: 'Larsen & Toubro Ltd', type: 'EQUITY', sector: 'OTHER', price: 3822.60, vwap: 3828.41, score: 63, pattern: 'Testing Day High', rvol: 1.08, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'MAZDOCK', name: 'Mazagon Dock Shipbuilders', type: 'EQUITY', sector: 'OTHER', price: 4400.00, vwap: 4407.01, score: 67, pattern: 'Holding Above VWAP', rvol: 1.48, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'NESTLEIND', name: 'Nestle India Ltd', type: 'EQUITY', sector: 'OTHER', price: 2520.00, vwap: 2510.80, score: 47, pattern: 'Day High Consolidation', rvol: 1.69, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'NYKAA', name: 'FSN E-Commerce (Nykaa)', type: 'EQUITY', sector: 'OTHER', price: 185.00, vwap: 185.33, score: 57, pattern: 'ORB Breakout Setup', rvol: 1.5, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'PAYTM', name: 'One97 Communications (Paytm)', type: 'EQUITY', sector: 'OTHER', price: 1641.80, vwap: 1639.33, score: 72, pattern: 'Bull Flag Continuation', rvol: 2.12, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'POLICYBZR', name: 'PB Fintech (PolicyBazaar)', type: 'EQUITY', sector: 'OTHER', price: 1750.00, vwap: 1751.36, score: 50, pattern: 'Ascending Triangle', rvol: 1.29, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'RAILTEL', name: 'RailTel Corporation of India', type: 'EQUITY', sector: 'OTHER', price: 410.00, vwap: 409.85, score: 71, pattern: 'VWAP Bounce + Hammer', rvol: 1.55, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'RVNL', name: 'Rail Vikas Nigam Ltd', type: 'EQUITY', sector: 'OTHER', price: 460.00, vwap: 458.36, score: 56, pattern: 'Bullish Engulfing 5m', rvol: 1.01, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'SUNPHARMA', name: 'Sun Pharmaceutical Ind', type: 'EQUITY', sector: 'OTHER', price: 1844.10, vwap: 1840.92, score: 43, pattern: 'Support Holding', rvol: 1.09, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'SWIGGY', name: 'Swiggy Ltd', type: 'EQUITY', sector: 'OTHER', price: 540.00, vwap: 540.39, score: 68, pattern: 'Ascending Channel', rvol: 1.16, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'TITAN', name: 'Titan Company Ltd', type: 'EQUITY', sector: 'OTHER', price: 4838.50, vwap: 4838.04, score: 56, pattern: 'Inside Bar Range', rvol: 2.06, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'TRENT', name: 'Trent Limited (Westside/Zudio)', type: 'EQUITY', sector: 'OTHER', price: 6950.00, vwap: 6948.49, score: 45, pattern: 'Testing Day High', rvol: 1.53, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'ZOMATO', name: 'Zomato Ltd', type: 'EQUITY', sector: 'OTHER', price: 275.00, vwap: 274.65, score: 71, pattern: 'Holding Above VWAP', rvol: 1.73, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+    ];
+
+    // Autocomplete Search Engine
+    function onStockSearchInput() {
+      const input = document.getElementById('custom-stock-input');
+      const query = input.value.trim().toUpperCase();
+      const dropdown = document.getElementById('stock-autocomplete-list');
+
+      if (!query || query.length === 0) {
+        dropdown.classList.add('hidden');
+        dropdown.innerHTML = '';
+        return;
+      }
+
+      // Match against NSE Directory by symbol OR company name
+      const matches = NSE_DIRECTORY.filter(item => 
+        item.symbol.includes(query) || item.name.toUpperCase().includes(query)
+      ).slice(0, 8); // Top 8 matches
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = `
+          <div class="p-3 text-xs text-slate-400 flex items-center justify-between">
+            <span>No standard symbol matched for "<b>${query}</b>"</span>
+            <button onclick="addCustomStock()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer">Add anyway</button>
+          </div>
+        `;
+        dropdown.classList.remove('hidden');
+        return;
+      }
+
+      let html = '';
+      matches.forEach(item => {
+        const isAlreadyAdded = universe.some(u => u.id === item.symbol);
+        html += `
+          <div onclick="selectStockSuggestion('${item.symbol}')" class="p-2.5 hover:bg-slate-800/80 cursor-pointer flex items-center justify-between transition group">
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="font-bold text-white mono text-xs">${item.symbol}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${item.sector}</span>
+                ${isAlreadyAdded ? '<span class="text-[10px] text-emerald-400 font-semibold">• Active</span>' : ''}
+              </div>
+              <div class="text-[11px] text-slate-400 mt-0.5">${item.name}</div>
+            </div>
+            <div class="text-right">
+              <span class="mono text-xs font-semibold text-slate-300">₹${item.price.toFixed(2)}</span>
+              <div class="text-[10px] text-indigo-400 font-semibold group-hover:underline">${isAlreadyAdded ? 'View on radar' : '+ Click to add'}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      dropdown.innerHTML = html;
+      dropdown.classList.remove('hidden');
+    }
+
+    function selectStockSuggestion(symbol) {
+      const match = NSE_DIRECTORY.find(item => item.symbol === symbol);
+      if (!match) return;
+
+      const dropdown = document.getElementById('stock-autocomplete-list');
+      dropdown.classList.add('hidden');
+      document.getElementById('custom-stock-input').value = '';
+
+      // Check if already in universe
+      if (universe.some(u => u.id === symbol)) {
+        addLog(`${symbol} is already active on your radar!`, 'text-blue-300');
+        renderScannerList();
+        return;
+      }
+
+      // Add to universe
+      const newStock = {
+        id: match.symbol,
+        name: match.name,
+        type: 'EQUITY',
+        sector: match.sector,
+        price: match.price,
+        vwap: Math.round(match.price * 0.996 * 100) / 100,
+        score: 72,
+        pattern: 'Added from Search • Scanning...',
+        rvol: 1.4
+      };
+
+      universe.unshift(newStock);
+      document.getElementById('stock-count-badge').innerText = universe.length;
+      addLog(`Added ${match.symbol} (${match.name}) to live scanner. Total stocks: ${universe.length}`, 'text-emerald-400 font-bold');
+      renderScannerList();
+    }
+
+    function onStockSearchKeyDown(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const dropdown = document.getElementById('stock-autocomplete-list');
+        const firstMatchEl = dropdown.querySelector('[onclick]');
+        if (firstMatchEl && !dropdown.classList.contains('hidden')) {
+          firstMatchEl.click();
+        } else {
+          addCustomStock();
+        }
+      } else if (event.key === 'Escape') {
+        document.getElementById('stock-autocomplete-list').classList.add('hidden');
+      }
+    }
+
+    function closeSuggestionsOnClickOutside(event) {
+      const container = document.getElementById('custom-stock-input');
+      const dropdown = document.getElementById('stock-autocomplete-list');
+      if (dropdown && !dropdown.contains(event.target) && event.target !== container) {
+        dropdown.classList.add('hidden');
+      }
+    }
+
+    function addCustomStock() {
+      const input = document.getElementById('custom-stock-input');
+      const symbol = input.value.trim().toUpperCase();
+      if (!symbol) return;
+
+      const dropdown = document.getElementById('stock-autocomplete-list');
+      dropdown.classList.add('hidden');
+
+      if (universe.some(u => u.id === symbol)) {
+        alert(`${symbol} is already on the scan radar!`);
+        return;
+      }
+
+      // Check if known in directory
+      const known = NSE_DIRECTORY.find(item => item.symbol === symbol);
+      const name = known ? known.name : symbol + ' Ltd';
+      const price = known ? known.price : (300 + Math.floor(Math.random() * 2000));
+      const sector = known ? known.sector : 'OTHER';
+
+      const newStock = {
+        id: symbol,
+        name: name,
+        type: 'EQUITY',
+        sector: sector,
+        price: price,
+        vwap: Math.round(price * 0.996 * 100) / 100,
+        score: 68,
+        pattern: 'New Stock Added • Scanning...',
+        rvol: 1.3
+      };
+
+      universe.unshift(newStock);
+      input.value = '';
+      document.getElementById('stock-count-badge').innerText = universe.length;
+      addLog(`Added ${symbol} (${name}) to live scanner. Total: ${universe.length}`, 'text-emerald-400 font-bold');
+      renderScannerList();
+      alert(`Success! ${symbol} has been added to the live AI scanner.`);
+    }
+
+    function removeStock(id, event) {
+      event.stopPropagation();
+      const idx = universe.findIndex(u => u.id === id);
+      if (idx !== -1) {
+        const removed = universe.splice(idx, 1)[0];
+        document.getElementById('stock-count-badge').innerText = universe.length;
+        addLog(`Removed ${removed.id} from scanning radar.`, 'text-slate-400');
+        renderScannerList();
+      }
+    }
+
+    function addLog(msg, color = 'text-slate-300') {
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+      logs.unshift({ time, msg, color });
+      if (logs.length > 60) logs.pop();
+      renderLogs();
+    }
+
+    function renderLogs() {
+      const container = document.getElementById('terminal-logs');
+      container.innerHTML = logs.map(l => `<div><span class="text-slate-500">[${l.time}]</span> <span class="${l.color}">${l.msg}</span></div>`).join('');
+    }
+
+    function setFilter(flt) {
+      currentFilter = flt;
+      const filters = ['ALL', 'INDEX', 'BANK', 'IT', 'AUTO', 'METAL', 'ENERGY', 'OTHER'];
+      filters.forEach(f => {
+        const btn = document.getElementById(`flt-${f}`);
+        if (btn) {
+          if (f === flt) {
+            btn.className = "px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-medium cursor-pointer";
+          } else {
+            btn.className = "px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer";
+          }
+        }
+      });
+      renderScannerList();
+    }
+
+    // Price Filter Logic for Market Radar & Active Stock Selection
+    function togglePriceFilter() {
+      isPriceFilterActive = !isPriceFilterActive;
+      updatePriceFilterUI();
+      const condLabel = priceFilterCondition === 'HIGHER' ? 'Higher than (≥)' : 'Lower than (≤)';
+      if (isPriceFilterActive) {
+        addLog(`Price Filter ACTIVATED: Radar & AI Trading limited to stocks ${condLabel} ₹${priceFilterAmount.toLocaleString('en-IN')}`, 'text-indigo-400 font-bold');
+      } else {
+        addLog(`Price Filter DEACTIVATED: Normal mode restored (all stock prices eligible for active trades).`, 'text-slate-300 font-semibold');
+      }
+      renderScannerList();
+    }
+
+    function onPriceFilterChange() {
+      const condEl = document.getElementById('price-filter-condition');
+      const amtEl = document.getElementById('price-filter-amount');
+      if (condEl) priceFilterCondition = condEl.value;
+      if (amtEl) {
+        const val = parseFloat(amtEl.value);
+        if (!isNaN(val) && val > 0) priceFilterAmount = val;
+      }
+      updatePriceFilterUI();
+      renderScannerList();
+    }
+
+    function setPriceFilterPreset(amt) {
+      priceFilterAmount = amt;
+      const amtEl = document.getElementById('price-filter-amount');
+      if (amtEl) amtEl.value = amt;
+      if (!isPriceFilterActive) {
+        isPriceFilterActive = true;
+      }
+      updatePriceFilterUI();
+      const condSymbol = priceFilterCondition === 'HIGHER' ? '≥' : '≤';
+      addLog(`Price Filter preset applied: ₹${amt.toLocaleString('en-IN')} (${condSymbol} ₹${amt.toLocaleString('en-IN')})`, 'text-indigo-300 font-semibold');
+      renderScannerList();
+    }
+
+    function updatePriceFilterUI() {
+      const btnToggle = document.getElementById('btn-toggle-price-filter');
+      const dot = document.getElementById('price-filter-dot');
+      const switchLabel = document.getElementById('price-filter-switch-label');
+      const statusTag = document.getElementById('price-filter-status-tag');
+      const controlsGroup = document.getElementById('price-filter-controls-group');
+      const summaryText = document.getElementById('price-filter-summary');
+
+      const condSymbol = priceFilterCondition === 'HIGHER' ? '≥' : '≤';
+
+      if (isPriceFilterActive) {
+        if (btnToggle) {
+          btnToggle.className = "px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer bg-indigo-600 text-white border border-indigo-500 shadow-sm";
+        }
+        if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        if (switchLabel) switchLabel.innerText = "Price Filter: ON";
+        if (statusTag) {
+          statusTag.innerText = `Active (${condSymbol} ₹${priceFilterAmount.toLocaleString('en-IN')})`;
+          statusTag.className = "text-[9px] uppercase px-1.5 py-0.5 rounded font-bold bg-indigo-950 text-indigo-300 border border-indigo-700";
+        }
+        if (controlsGroup) {
+          controlsGroup.classList.remove('opacity-50', 'pointer-events-none');
+        }
+        if (summaryText) {
+          summaryText.innerHTML = `<span class="text-indigo-300 font-semibold">Active:</span> Only stocks <b class="text-white">${condSymbol} ₹${priceFilterAmount.toLocaleString('en-IN')}</b> eligible`;
+        }
+      } else {
+        if (btnToggle) {
+          btnToggle.className = "px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer bg-slate-800 text-slate-400 border border-slate-700 hover:text-white";
+        }
+        if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-500";
+        if (switchLabel) switchLabel.innerText = "Price Filter: OFF";
+        if (statusTag) {
+          statusTag.innerText = "Normal (All Prices)";
+          statusTag.className = "text-[9px] uppercase px-1.5 py-0.5 rounded font-bold bg-slate-800 text-slate-400 border border-slate-700";
+        }
+        if (controlsGroup) {
+          controlsGroup.classList.add('opacity-50', 'pointer-events-none');
+        }
+        if (summaryText) {
+          summaryText.innerText = "Default: All price ranges eligible";
+        }
+      }
+    }
+
+    function updateRadarTriggerLabel() {
+      const radarLabel = document.getElementById('radar-trigger-label');
+      if (!radarLabel) return;
+      const profile = STRATEGY_PROFILES[strategyStyle] || STRATEGY_PROFILES.TREND;
+      if (tradeDirection === 'BUY_ONLY') {
+        radarLabel.innerText = `Trigger: BUY ≥ ${profile.minScore}% Score`;
+      } else if (tradeDirection === 'SELL_ONLY') {
+        radarLabel.innerText = `Trigger: SELL ≤ ${profile.maxBearScore}% (Short)`;
+      } else {
+        radarLabel.innerText = `Trigger: BUY ≥ ${profile.minScore}% • SELL ≤ ${profile.maxBearScore}%`;
+      }
+    }
+
+    function setStrategyStyle(style) {
+      if (!STRATEGY_PROFILES[style]) return;
+      strategyStyle = style;
+      const profile = STRATEGY_PROFILES[style];
+
+      // Update button styling
+      ['SCALPER', 'TREND', 'SNIPER'].forEach(s => {
+        const btn = document.getElementById(`style-btn-${s}`);
+        if (btn) {
+          if (s === style) {
+            btn.className = "px-3 py-1 rounded-lg bg-indigo-600 text-white font-bold transition shadow-sm cursor-pointer";
+          } else {
+            btn.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-white font-medium transition cursor-pointer";
+          }
+        }
+      });
+
+      // Update description badge
+      const badge = document.getElementById('style-description-badge');
+      if (badge) {
+        badge.innerHTML = profile.badgeDesc;
+        badge.className = `text-[11px] px-3 py-1 rounded-lg ${profile.badgeClass}`;
+      }
+
+      updateRadarTriggerLabel();
+      updateAccuracyUI();
+      updateModelFilterUI();
+
+      if (isServerConnected) {
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ strategy_style: style })
+        }).catch(() => {});
+      }
+
+      addLog(`Strategy execution profile switched to ${profile.name} (BUY ≥ ${profile.minScore}% | SELL ≤ ${profile.maxBearScore}% | R:R 1:${profile.rrRatio || 2.0})`, 'text-indigo-300 font-bold');
+      renderScannerList();
+    }
+
+    function setTradeDirection(dir) {
+      tradeDirection = dir;
+      ['BOTH', 'BUY_ONLY', 'SELL_ONLY'].forEach(d => {
+        const btn = document.getElementById(`dir-btn-${d}`);
+        if (btn) {
+          if (d === dir) {
+            if (d === 'BOTH') btn.className = "px-2.5 py-1 rounded-lg bg-purple-600 text-white font-bold transition shadow-sm cursor-pointer";
+            else if (d === 'BUY_ONLY') btn.className = "px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold transition shadow-sm cursor-pointer";
+            else btn.className = "px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold transition shadow-sm cursor-pointer";
+          } else {
+            btn.className = "px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-medium transition cursor-pointer";
+          }
+        }
+      });
+
+      updateRadarTriggerLabel();
+      const dirText = dir === 'BOTH' ? 'BOTH (BUY & SELL)' : (dir === 'BUY_ONLY' ? 'BUY Only (Long)' : 'SELL Only (Short)');
+      addLog(`Trade Execution Direction switched to: ${dirText}`, 'text-purple-300 font-bold');
+      renderScannerList();
+    }
+
+    function toggleBot(start) {
+      if (start) {
+        if (killSwitchHit) {
+          alert("Kill switch is active! Daily Loss Limit was reached. Click Reset to trade again.");
+          return;
+        }
+        isRunning = true;
+        const profile = STRATEGY_PROFILES[strategyStyle] || STRATEGY_PROFILES.TREND;
+        addLog(`AI BOT STARTED [${profile.name}]. Scanning ${universe.length} stocks for ≥ ${profile.minScore}% confidence setups...`, "text-emerald-400 font-bold");
+        if (isServerConnected) {
+          fetch('/api/start', { method: 'POST' }).catch(() => {});
+        }
+      } else {
+        isRunning = false;
+        squareOffAll("Manual Emergency Stop");
+        addLog("AI BOT STOPPED. All open positions squared off.", "text-rose-400 font-bold");
+        if (isServerConnected) {
+          fetch('/api/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ square_off: true }) }).catch(() => {});
+        }
+      }
+      updateUI();
+    }
+
+    function onCapitalInput() {
+      initialCapital = parseFloat(document.getElementById('input-capital').value) || 0;
+      const pct = parseFloat(document.getElementById('input-risk-pct').value) || 1.5;
+      const rupeeVal = Math.round(((initialCapital * pct) / 100) * 100) / 100;
+      document.getElementById('input-risk-amount').value = rupeeVal;
+      updateRiskBadge();
+    }
+
+    function onRiskPctInput() {
+      initialCapital = parseFloat(document.getElementById('input-capital').value) || 0;
+      const pct = parseFloat(document.getElementById('input-risk-pct').value) || 0;
+      riskPerTradePct = pct;
+      const rupeeVal = Math.round(((initialCapital * pct) / 100) * 100) / 100;
+      document.getElementById('input-risk-amount').value = rupeeVal;
+      updateRiskBadge();
+    }
+
+    function onRiskAmountInput() {
+      initialCapital = parseFloat(document.getElementById('input-capital').value) || 1;
+      const rupee = parseFloat(document.getElementById('input-risk-amount').value) || 0;
+      const pctVal = Math.round(((rupee / initialCapital) * 100) * 10) / 10;
+      riskPerTradePct = pctVal;
+      document.getElementById('input-risk-pct').value = pctVal;
+      updateRiskBadge();
+    }
+
+    function updateRiskBadge() {
+      const pct = parseFloat(document.getElementById('input-risk-pct').value) || 1.5;
+      const badge = document.getElementById('risk-calc-badge');
+      if (badge) {
+        badge.innerText = `= ${pct}%`;
+      }
+    }
+
+    function onMaxTradesInput() {
+      const val = parseInt(document.getElementById('input-max-trades').value);
+      maxDailyTrades = (!isNaN(val) && val > 0) ? val : 0;
+      updateMaxTradesBadge();
+      updateUI();
+    }
+
+    function setMaxTradesPreset(num) {
+      maxDailyTrades = num;
+      const el = document.getElementById('input-max-trades');
+      if (el) el.value = num;
+      updateMaxTradesBadge();
+      addLog(`Max Daily Trades Cap set to ${num} trades (Max est. brokerage: ₹${num * brokeragePerTrade})`, 'text-amber-300 font-semibold');
+      updateUI();
+    }
+
+    function updateMaxTradesBadge() {
+      const badge = document.getElementById('max-trades-badge');
+      if (!badge) return;
+      if (maxDailyTrades > 0) {
+        badge.innerText = `Cap: ${maxDailyTrades}`;
+        badge.className = "text-[10px] text-amber-400 font-bold mono";
+      } else {
+        badge.innerText = `Unlimited`;
+        badge.className = "text-[10px] text-slate-500 font-bold mono";
+      }
+    }
+
+    function openEditSlTpModal(posId) {
+      const pos = positions.find(p => p.id === posId);
+      if (!pos) return;
+      editingPosition = pos;
+
+      document.getElementById('edit-pos-id').value = pos.id;
+      document.getElementById('edit-pos-symbol').innerText = pos.symbol;
+      document.getElementById('edit-pos-qty').innerText = pos.qty;
+      document.getElementById('edit-pos-entry').innerText = `₹${pos.entry.toFixed(2)}`;
+      document.getElementById('edit-pos-ltp').innerText = `₹${pos.ltp.toFixed(2)}`;
+      
+      document.getElementById('edit-pos-sl-amount').value = Math.round(pos.slAmount || 1000);
+      document.getElementById('edit-pos-tp-amount').value = Math.round(pos.tpAmount || 2000);
+      
+      onEditModalInput();
+      document.getElementById('modal-edit-sltp').classList.remove('hidden');
+    }
+
+    function closeEditSlTpModal() {
+      document.getElementById('modal-edit-sltp').classList.add('hidden');
+      editingPosition = null;
+    }
+
+    function onEditModalInput() {
+      if (!editingPosition) return;
+      const pos = editingPosition;
+      const slAmount = parseFloat(document.getElementById('edit-pos-sl-amount').value) || 1;
+      const tpAmount = parseFloat(document.getElementById('edit-pos-tp-amount').value) || 1;
+      const qty = pos.qty || 1;
+      const entry = pos.entry || 0;
+
+      const slPrice = Math.max(0.5, pos.type === 'BUY' ? entry - (slAmount / qty) : entry + (slAmount / qty));
+      const tpPrice = pos.type === 'BUY' ? entry + (tpAmount / qty) : Math.max(0.5, entry - (tpAmount / qty));
+
+      document.getElementById('edit-preview-sl-price').innerText = `₹${slPrice.toFixed(2)} (-₹${Math.round(slAmount).toLocaleString('en-IN')})`;
+      document.getElementById('edit-preview-tp-price').innerText = `₹${tpPrice.toFixed(2)} (+₹${Math.round(tpAmount).toLocaleString('en-IN')})`;
+
+      const ratio = (tpAmount / slAmount).toFixed(1);
+      document.getElementById('edit-preview-rr').innerText = `1:${ratio} R:R`;
+    }
+
+    function setModalSlPreset(slAmt) {
+      document.getElementById('edit-pos-sl-amount').value = slAmt;
+      const rr = STRATEGY_PROFILES[strategyStyle]?.rrRatio || 2.0;
+      document.getElementById('edit-pos-tp-amount').value = Math.round(slAmt * rr);
+      onEditModalInput();
+    }
+
+    function savePositionSlTp() {
+      if (!editingPosition) return;
+      const slAmount = parseFloat(document.getElementById('edit-pos-sl-amount').value);
+      const tpAmount = parseFloat(document.getElementById('edit-pos-tp-amount').value);
+
+      if (!slAmount || slAmount <= 0 || !tpAmount || tpAmount <= 0) {
+        alert("Please enter valid Stop Loss and Target Profit amounts in ₹.");
+        return;
+      }
+
+      editingPosition.slAmount = slAmount;
+      editingPosition.tpAmount = tpAmount;
+      const qty = editingPosition.qty;
+      const entry = editingPosition.entry;
+      editingPosition.sl = Math.max(0.5, Math.round((entry - (slAmount / qty)) * 100) / 100);
+      editingPosition.tp = Math.round((entry + (tpAmount / qty)) * 100) / 100;
+      editingPosition.isCustomSltp = true;
+
+      addLog(`UPDATED SL/TP for ${editingPosition.symbol}: SL=-₹${slAmount.toLocaleString()} (@ ₹${editingPosition.sl.toFixed(2)}) | TP=+₹${tpAmount.toLocaleString()} (@ ₹${editingPosition.tp.toFixed(2)}) [Custom Edit]`, 'text-purple-300 font-bold');
+      closeEditSlTpModal();
+      updateUI();
+    }
+
+    function resetPositionToNormal() {
+      if (!editingPosition) return;
+      const normalSl = Math.round((initialCapital * riskPerTradePct) / 100);
+      const rr = STRATEGY_PROFILES[strategyStyle]?.rrRatio || 2.0;
+      const normalTp = Math.round(normalSl * rr);
+
+      editingPosition.slAmount = normalSl;
+      editingPosition.tpAmount = normalTp;
+      const qty = editingPosition.qty;
+      const entry = editingPosition.entry;
+      editingPosition.sl = Math.max(0.5, Math.round((entry - (normalSl / qty)) * 100) / 100);
+      editingPosition.tp = Math.round((entry + (normalTp / qty)) * 100) / 100;
+      editingPosition.isCustomSltp = false;
+
+      addLog(`RESET SL/TP to NORMAL for ${editingPosition.symbol}: SL=-₹${normalSl.toLocaleString()} | TP=+₹${normalTp.toLocaleString()}`, 'text-blue-300');
+      closeEditSlTpModal();
+      updateUI();
+    }
+
+    function openBulkEditSlTpModal(side = 'BUY') {
+      currentBulkSide = (side === 'SELL') ? 'SELL' : 'BUY';
+      switchBulkModalSide(currentBulkSide);
+      document.getElementById('modal-bulk-edit-sltp').classList.remove('hidden');
+    }
+
+    function closeBulkEditSlTpModal() {
+      document.getElementById('modal-bulk-edit-sltp').classList.add('hidden');
+    }
+
+    function switchBulkModalSide(side) {
+      currentBulkSide = (side === 'SELL') ? 'SELL' : 'BUY';
+      const isBuy = currentBulkSide === 'BUY';
+
+      // Update tabs style
+      const tabBuy = document.getElementById('bulk-tab-BUY');
+      const tabSell = document.getElementById('bulk-tab-SELL');
+      if (isBuy) {
+        tabBuy.className = "flex-1 py-1.5 rounded-lg bg-emerald-600 text-white flex items-center justify-center space-x-1.5 transition cursor-pointer shadow-sm font-bold";
+        tabSell.className = "flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center justify-center space-x-1.5 transition cursor-pointer";
+      } else {
+        tabBuy.className = "flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white flex items-center justify-center space-x-1.5 transition cursor-pointer";
+        tabSell.className = "flex-1 py-1.5 rounded-lg bg-rose-600 text-white flex items-center justify-center space-x-1.5 transition cursor-pointer shadow-sm font-bold";
+      }
+
+      // Header & labels
+      document.getElementById('bulk-modal-icon').innerText = isBuy ? '🟢' : '🔴';
+      document.getElementById('bulk-modal-title').innerText = isBuy ? 'Edit SL & Target for BUY Positions (Long / CE)' : 'Edit SL & Target for SELL Positions (Short / PE)';
+      document.getElementById('bulk-label-sl').innerText = isBuy ? 'Stop Loss (₹ Amount Per BUY Position)' : 'Stop Loss (₹ Amount Per SELL Position)';
+      document.getElementById('bulk-label-tp').innerText = isBuy ? 'Target Profit (₹ Amount Per BUY Position)' : 'Target Profit (₹ Amount Per SELL Position)';
+
+      const saveBtn = document.getElementById('bulk-btn-save');
+      saveBtn.innerText = isBuy ? 'Update BUY Stocks' : 'Update SELL Stocks';
+      saveBtn.className = isBuy ? 'px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer' : 'px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer';
+
+      document.getElementById('bulk-btn-reset').innerText = isBuy ? 'Reset BUY to Normal' : 'Reset SELL to Normal';
+      document.getElementById('bulk-edit-disclaimer').innerText = isBuy 
+        ? '* Immediately updates all active BUY stocks, and permanently applies to all newly entered BUY stocks.' 
+        : '* Immediately updates all active SELL stocks, and permanently applies to all newly entered SELL stocks.';
+
+      // Filter active positions matching current side
+      const matchingPos = positions.filter(p => getTradeSide(p) === currentBulkSide);
+      const countEl = document.getElementById('bulk-edit-pos-count');
+      const listEl = document.getElementById('bulk-edit-symbols-list');
+
+      countEl.className = isBuy ? 'font-bold text-emerald-400 mono' : 'font-bold text-rose-400 mono';
+      if (matchingPos.length > 0) {
+        countEl.innerText = `${matchingPos.length} Active + All Upcoming New ${currentBulkSide} Stocks`;
+        listEl.innerHTML = matchingPos.map(p => 
+          `<span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-white mono font-bold">${p.symbol} (${p.qty})</span>`
+        ).join('') + ` <span class="px-2 py-0.5 rounded ${isBuy ? 'bg-emerald-900/60 border border-emerald-700 text-emerald-300' : 'bg-rose-900/60 border border-rose-700 text-rose-300'} mono font-bold">+ Future New ${currentBulkSide} Stocks</span>`;
+      } else {
+        countEl.innerText = `0 Active (Applies to All Upcoming New ${currentBulkSide} Stocks)`;
+        listEl.innerHTML = `<span class="${isBuy ? 'text-emerald-300' : 'text-rose-300'}">No active ${currentBulkSide} positions right now. The custom amounts set below will be locked in and automatically applied to all newly entered ${currentBulkSide} stocks.</span>`;
+      }
+
+      // Pre-fill input amounts
+      const defaultSl = getNormalSlAmount();
+      const defaultTp = getNormalTpAmount();
+      const currentSl = isBuy 
+        ? (customBuySl !== null ? customBuySl : (matchingPos.length && matchingPos[0].slAmount ? matchingPos[0].slAmount : defaultSl))
+        : (customSellSl !== null ? customSellSl : (matchingPos.length && matchingPos[0].slAmount ? matchingPos[0].slAmount : defaultSl));
+      const currentTp = isBuy
+        ? (customBuyTp !== null ? customBuyTp : (matchingPos.length && matchingPos[0].tpAmount ? matchingPos[0].tpAmount : defaultTp))
+        : (customSellTp !== null ? customSellTp : (matchingPos.length && matchingPos[0].tpAmount ? matchingPos[0].tpAmount : defaultTp));
+
+      document.getElementById('bulk-edit-sl-amount').value = Math.round(currentSl);
+      document.getElementById('bulk-edit-tp-amount').value = Math.round(currentTp);
+
+      onBulkEditModalInput();
+    }
+
+    function onBulkEditModalInput() {
+      const slAmount = parseFloat(document.getElementById('bulk-edit-sl-amount').value) || 0;
+      const tpAmount = parseFloat(document.getElementById('bulk-edit-tp-amount').value) || 0;
+
+      document.getElementById('bulk-preview-sl-text').innerText = slAmount > 0 ? `-₹${Math.round(slAmount).toLocaleString('en-IN')}` : `Normal Default`;
+      document.getElementById('bulk-preview-tp-text').innerText = tpAmount > 0 ? `+₹${Math.round(tpAmount).toLocaleString('en-IN')}` : `Normal Default`;
+
+      if (slAmount > 0 && tpAmount > 0) {
+        const ratio = (tpAmount / slAmount).toFixed(1);
+        document.getElementById('bulk-preview-rr').innerText = `1:${ratio} R:R`;
+      } else {
+        document.getElementById('bulk-preview-rr').innerText = `R:R Auto`;
+      }
+    }
+
+    function setBulkModalSlPreset(slAmt) {
+      document.getElementById('bulk-edit-sl-amount').value = slAmt;
+      const rr = STRATEGY_PROFILES[strategyStyle]?.rrRatio || 2.0;
+      document.getElementById('bulk-edit-tp-amount').value = Math.round(slAmt * rr);
+      onBulkEditModalInput();
+    }
+
+    function saveAllPositionsSlTp() {
+      const side = currentBulkSide; // 'BUY' or 'SELL'
+      const isBuy = side === 'BUY';
+      const slVal = document.getElementById('bulk-edit-sl-amount').value;
+      const tpVal = document.getElementById('bulk-edit-tp-amount').value;
+      const slAmount = parseFloat(slVal) > 0 ? parseFloat(slVal) : null;
+      const tpAmount = parseFloat(tpVal) > 0 ? parseFloat(tpVal) : null;
+
+      if (!slAmount && !tpAmount) {
+        alert(`Please enter a valid Stop Loss or Target Profit amount in ₹ for ${side} trades.`);
+        return;
+      }
+
+      // 1. Store persistent override so all future new stocks of this side inherit this!
+      if (isBuy) {
+        if (slAmount) customBuySl = slAmount;
+        if (tpAmount) customBuyTp = tpAmount;
+      } else {
+        if (slAmount) customSellSl = slAmount;
+        if (tpAmount) customSellTp = tpAmount;
+      }
+
+      const effSl = getEffectiveSlAmount(side);
+      const effTp = getEffectiveTpAmount(side);
+
+      // 2. Update existing active positions matching this side
+      let count = 0;
+      positions.forEach(pos => {
+        if (getTradeSide(pos) === side) {
+          if (slAmount) pos.slAmount = slAmount;
+          if (tpAmount) pos.tpAmount = tpAmount;
+          pos.isCustomSltp = true;
+          const qty = pos.qty || 1;
+          const entry = pos.entry;
+          
+          if (pos.isOption || pos.type === 'BUY') {
+            pos.sl = Math.max(0.5, Math.round((entry - (pos.slAmount / qty)) * 100) / 100);
+            pos.tp = Math.round((entry + (pos.tpAmount / qty)) * 100) / 100;
+          } else {
+            // Equity Short SELL
+            pos.sl = Math.round((entry + (pos.slAmount / qty)) * 100) / 100;
+            pos.tp = Math.max(0.5, Math.round((entry - (pos.tpAmount / qty)) * 100) / 100);
+          }
+          count++;
+        }
+      });
+
+      const countStr = count > 0 ? `FOR ALL (${count}) ACTIVE ${side} POSITIONS & FUTURE NEW ${side} STOCKS` : `FOR ALL FUTURE NEW ${side} STOCKS`;
+      addLog(`LOCKED IN CUSTOM ${side} SL/TP ${countStr}: SL=-₹${effSl.toLocaleString()} | TP=+₹${effTp.toLocaleString()} [Custom Active]`, isBuy ? 'text-emerald-300 font-semibold' : 'text-rose-300 font-semibold');
+      closeBulkEditSlTpModal();
+      updateUI();
+    }
+
+    function resetBulkPositionsToNormal() {
+      const side = currentBulkSide; // 'BUY' or 'SELL'
+      const isBuy = side === 'BUY';
+
+      // Clear persistent override for this side
+      if (isBuy) {
+        customBuySl = null;
+        customBuyTp = null;
+      } else {
+        customSellSl = null;
+        customSellTp = null;
+      }
+
+      const normalSl = getNormalSlAmount();
+      const normalTp = getNormalTpAmount();
+
+      let count = 0;
+      positions.forEach(pos => {
+        if (getTradeSide(pos) === side) {
+          pos.slAmount = normalSl;
+          pos.tpAmount = normalTp;
+          pos.isCustomSltp = false;
+          const qty = pos.qty || 1;
+          const entry = pos.entry;
+          if (pos.isOption || pos.type === 'BUY') {
+            pos.sl = Math.max(0.5, Math.round((entry - (normalSl / qty)) * 100) / 100);
+            pos.tp = Math.round((entry + (normalTp / qty)) * 100) / 100;
+          } else {
+            pos.sl = Math.round((entry + (normalSl / qty)) * 100) / 100;
+            pos.tp = Math.max(0.5, Math.round((entry - (normalTp / qty)) * 100) / 100);
+          }
+          count++;
+        }
+      });
+
+      addLog(`RESET ${side} POSITIONS (${count}) & FUTURE NEW ${side} STOCKS to NORMAL SL/TP: SL=-₹${normalSl.toLocaleString()} | TP=+₹${normalTp.toLocaleString()}`, 'text-blue-300 font-semibold');
+      closeBulkEditSlTpModal();
+      updateUI();
+    }
+
+    function resetAllPositionsToNormal() {
+      // Legacy alias: resets both BUY and SELL
+      customTradeSl = null;
+      customTradeTp = null;
+      customBuySl = null;
+      customBuyTp = null;
+      customSellSl = null;
+      customSellTp = null;
+
+      const normalSl = getNormalSlAmount();
+      const normalTp = getNormalTpAmount();
+
+      positions.forEach(pos => {
+        pos.slAmount = normalSl;
+        pos.tpAmount = normalTp;
+        pos.isCustomSltp = false;
+        const qty = pos.qty || 1;
+        const entry = pos.entry;
+        if (pos.isOption || pos.type === 'BUY') {
+          pos.sl = Math.max(0.5, Math.round((entry - (normalSl / qty)) * 100) / 100);
+          pos.tp = Math.round((entry + (normalTp / qty)) * 100) / 100;
+        } else {
+          pos.sl = Math.round((entry + (normalSl / qty)) * 100) / 100;
+          pos.tp = Math.max(0.5, Math.round((entry - (normalTp / qty)) * 100) / 100);
+        }
+      });
+
+      addLog(`RESET ALL POSITIONS & FUTURE NEW STOCKS to NORMAL SL/TP: SL=-₹${normalSl.toLocaleString()} | TP=+₹${normalTp.toLocaleString()}`, 'text-blue-300 font-semibold');
+      closeBulkEditSlTpModal();
+      updateUI();
+    }
+
+    function showToastNotification(msg) {
+      let toast = document.getElementById('global-toast-banner');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'global-toast-banner';
+        toast.className = 'fixed top-4 right-4 z-[9999] py-3 px-5 rounded-2xl bg-emerald-950/95 border border-emerald-400 text-white text-xs font-bold shadow-2xl flex items-center space-x-2.5 transition-all duration-300';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = `<span class="text-lg">✅</span> <span>${msg}</span>`;
+      toast.classList.remove('hidden');
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      clearTimeout(window.__toastTimeout);
+      window.__toastTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.classList.add('hidden'), 300);
+      }, 3500);
+    }
+
+    async function saveSettings() {
+      const capInput = document.getElementById('input-capital');
+      const lossInput = document.getElementById('input-loss-limit');
+      const riskPctInput = document.getElementById('input-risk-pct');
+      const riskAmtInput = document.getElementById('input-risk-amount');
+      const maxTradesInput = document.getElementById('input-max-trades');
+
+      if (capInput && parseFloat(capInput.value) > 0) {
+        initialCapital = parseFloat(capInput.value);
+      }
+      if (lossInput && parseFloat(lossInput.value) > 0) {
+        dailyLossLimit = parseFloat(lossInput.value);
+      }
+      if (riskPctInput && parseFloat(riskPctInput.value) > 0) {
+        riskPerTradePct = parseFloat(riskPctInput.value);
+      }
+      if (maxTradesInput && parseInt(maxTradesInput.value) > 0) {
+        maxDailyTrades = parseInt(maxTradesInput.value);
+      }
+
+      currentCapital = initialCapital + realizedPnl;
+      const riskAmt = Math.round((initialCapital * riskPerTradePct) / 100);
+      const stratProfile = STRATEGY_PROFILES[strategyStyle] || STRATEGY_PROFILES.TREND;
+      const normalTp = Math.round(riskAmt * (stratProfile.rrRatio || 2.0));
+
+      if (riskAmtInput) {
+        riskAmtInput.value = riskAmt;
+      }
+      updateRiskBadge();
+      updateMaxTradesBadge();
+
+      // Send to python backend
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            initial_capital: initialCapital,
+            daily_loss_limit: dailyLossLimit,
+            risk_per_trade_pct: riskPerTradePct,
+            trade_sl_amount: riskAmt,
+            trade_tp_amount: normalTp,
+            strategy_style: strategyStyle,
+            trade_direction: tradeDirection,
+            price_filter_active: isPriceFilterActive,
+            price_filter_condition: priceFilterCondition,
+            price_filter_amount: priceFilterAmount,
+            max_daily_trades: maxDailyTrades,
+            brokerage_per_trade: brokeragePerTrade,
+            nifty_filter_active: niftyFilterActive,
+            time_filter_active: timeFilterActive,
+            mtf_filter_active: mtfFilterActive,
+            ema_filter_active: emaFilterActive,
+            vwap_pullback_filter_active: vwapPullbackFilterActive,
+            rvol_filter_active: rvolFilterActive,
+            max_vwap_dist_pct: maxVwapDistPct,
+            min_rvol_threshold: minRvolThreshold
+          })
+        });
+      } catch (err) {
+        console.warn("Could not save settings to backend:", err);
+      }
+
+      updateUI();
+
+      // Visual Instant Feedback on Save Button
+      const saveBtn = document.getElementById('btn-save-settings');
+      const saveIcon = document.getElementById('save-settings-icon');
+      const saveText = document.getElementById('save-settings-text');
+      if (saveBtn) {
+        saveBtn.className = "flex-1 py-2 px-3 bg-emerald-600 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center justify-center space-x-1.5 ring-2 ring-emerald-400 scale-[1.02]";
+        if (saveIcon) saveIcon.innerText = "✓";
+        if (saveText) saveText.innerText = "Saved!";
+        setTimeout(() => {
+          saveBtn.className = "flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-md flex items-center justify-center space-x-1.5 active:scale-95";
+          if (saveIcon) saveIcon.innerText = "💾";
+          if (saveText) saveText.innerText = "Save Settings";
+        }, 2200);
+      }
+
+      showToastNotification(`Settings Saved: Capital ₹${initialCapital.toLocaleString('en-IN')}, Loss Limit ₹${dailyLossLimit.toLocaleString('en-IN')}, Risk ${riskPerTradePct}% (₹${riskAmt}), Cap: ${maxDailyTrades} Trades`);
+      addLog(`Settings saved: Capital ₹${initialCapital.toLocaleString('en-IN')}, Loss Limit: ₹${dailyLossLimit.toLocaleString('en-IN')}, Risk: ${riskPerTradePct}% (Normal SL: -₹${riskAmt} | Normal TP: +₹${normalTp}), Cap: ${maxDailyTrades} trades`, 'text-emerald-400 font-bold');
+    }
+
+    function resetAccount() {
+      if (isServerConnected) {
+        fetch('/api/reset', { method: 'POST' }).catch(() => {});
+      }
+      isRunning = false;
+      killSwitchHit = false;
+      customTradeSl = null;
+      customTradeTp = null;
+      customBuySl = null;
+      customBuyTp = null;
+      customSellSl = null;
+      customSellTp = null;
+      isPriceFilterActive = false;
+      priceFilterCondition = 'HIGHER';
+      priceFilterAmount = 1000;
+      updatePriceFilterUI();
+      maxDailyTrades = 10;
+      const mtInput = document.getElementById('input-max-trades');
+      if (mtInput) mtInput.value = 10;
+      updateMaxTradesBadge();
+      positions = [];
+      history = [];
+      realizedPnl = 0;
+      unrealizedPnl = 0;
+      totalTrades = 0;
+      winTrades = 0;
+      currentCapital = initialCapital;
+      document.getElementById('kill-banner').classList.add('hidden');
+      addLog("Account reset to default balance.", "text-yellow-400");
+      updateUI();
+    }
+
+    function squareOffAll(reason) {
+      positions.forEach(pos => {
+        closePos(pos, reason);
+      });
+      positions = [];
+      unrealizedPnl = 0;
+      updateUI();
+    }
+
+    function closePos(pos, reason) {
+      const pnl = (pos.type === 'SELL' ? (pos.entry - pos.ltp) : (pos.ltp - pos.entry)) * pos.qty;
+      realizedPnl += pnl;
+      totalTrades++;
+      if (pnl > 0) winTrades++;
+      const totalBrokerage = totalTrades * brokeragePerTrade;
+      currentCapital = initialCapital + realizedPnl - totalBrokerage;
+
+      history.unshift({
+        symbol: pos.symbol,
+        type: pos.type,
+        qty: pos.qty,
+        entry: pos.entry,
+        exit: pos.ltp,
+        pnl: Math.round(pnl * 100) / 100,
+        reason: reason,
+        styleTag: pos.styleTag || 'TREND'
+      });
+
+      const pnlStr = pnl >= 0 ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`;
+      addLog(`CLOSED ${pos.symbol} @ ₹${pos.ltp.toFixed(2)} | P&L: ${pnlStr} | ${reason}`, pnl >= 0 ? 'text-emerald-400' : 'text-rose-400');
+    }
+
+    function manualExit(id) {
+      const idx = positions.findIndex(p => p.id === id);
+      if (idx !== -1) {
+        closePos(positions[idx], "Manual User Exit");
+        positions.splice(idx, 1);
+        updateUI();
+      }
+    }
+
+    // Engine Loop (Runs every 1 second: 1000ms)
+    setInterval(() => {
+      document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', { hour12: false }) + " IST";
+
+      // 1. Live Tick Updates (Always active so market radar ticks live second-by-second)
+      universe.forEach(item => {
+        const drift = (Math.random() - 0.495) * 0.001;
+        item.price = Math.round((item.price * (1 + drift)) * 100) / 100;
+        item.score = Math.max(20, Math.min(95, item.score + Math.floor((Math.random() - 0.48) * 3)));
+        item.rvol = Math.round((Math.max(0.7, Math.min(3.2, item.rvol + (Math.random() - 0.5) * 0.05))) * 10) / 10;
+      });
+
+      if (!isRunning) {
+        renderScannerList();
+        return;
+      }
+
+      // 2. Manage Positions
+      let currentUnrealized = 0;
+      for (let i = positions.length - 1; i >= 0; i--) {
+        const pos = positions[i];
+        const underlying = universe.find(u => u.id === pos.underlying);
+        if (underlying) {
+          const move = (underlying.price - pos.basePrice) / pos.basePrice;
+          if (pos.isOption) {
+            const isPe = pos.symbol.includes('PE');
+            const deltaMult = isPe ? -12 : 12;
+            pos.ltp = Math.max(1, Math.round(pos.entry * (1 + move * deltaMult) * 100) / 100);
+          } else {
+            pos.ltp = underlying.price;
+          }
+        }
+
+        const pnl = (pos.type === 'SELL' ? (pos.entry - pos.ltp) : (pos.ltp - pos.entry)) * pos.qty;
+        pos.pnl = Math.round(pnl * 100) / 100;
+        currentUnrealized += pnl;
+
+        // Dynamic Profile-based Trailing Stop
+        const trailTrigger = pos.trailTrigger || 1.015;
+        const trailDist = pos.trailDistance || 0.985;
+        if (pos.type === 'BUY') {
+          if (pos.ltp >= pos.entry * trailTrigger) {
+            const newSl = Math.round(pos.ltp * trailDist * 100) / 100;
+            if (newSl > pos.sl) {
+              pos.sl = newSl;
+              pos.trailing = true;
+            }
+          }
+          if (pos.ltp <= pos.sl || pnl <= -Math.abs(pos.slAmount || 1000)) {
+            closePos(pos, `Stop-Loss Hit (-₹${Math.abs(pnl).toFixed(0)})`);
+            positions.splice(i, 1);
+            continue;
+          }
+          if (pos.ltp >= pos.tp || pnl >= Math.abs(pos.tpAmount || 2000)) {
+            closePos(pos, `Target Hit (+₹${pnl.toFixed(0)})`);
+            positions.splice(i, 1);
+            continue;
+          }
+        } else { // SELL / SHORT position
+          if (pos.ltp <= pos.entry * (2 - trailTrigger)) {
+            const newSl = Math.round(pos.ltp * (2 - trailDist) * 100) / 100;
+            if (newSl < pos.sl) {
+              pos.sl = newSl;
+              pos.trailing = true;
+            }
+          }
+          if (pos.ltp >= pos.sl || pnl <= -Math.abs(pos.slAmount || 1000)) {
+            closePos(pos, `Stop-Loss Hit (-₹${Math.abs(pnl).toFixed(0)})`);
+            positions.splice(i, 1);
+            continue;
+          }
+          if (pos.ltp <= pos.tp || pnl >= Math.abs(pos.tpAmount || 2000)) {
+            closePos(pos, `Target Hit (+₹${pnl.toFixed(0)})`);
+            positions.splice(i, 1);
+            continue;
+          }
+        }
+      }
+      unrealizedPnl = Math.round(currentUnrealized * 100) / 100;
+
+      // 3. Kill Switch Check
+      const totalPnl = realizedPnl + unrealizedPnl;
+      if (totalPnl <= -Math.abs(dailyLossLimit)) {
+        killSwitchHit = true;
+        isRunning = false;
+        squareOffAll("Daily Loss Limit Reached");
+        document.getElementById('kill-banner').classList.remove('hidden');
+        addLog(`KILL SWITCH ACTIVATED: Daily loss touched ₹${Math.abs(totalPnl).toFixed(2)} >= Limit ₹${dailyLossLimit}`, 'text-rose-500 font-bold');
+        updateUI();
+        return;
+      }
+
+      // 4. Scan & Enter Trades (Two-Way: BUY & SELL with Direction Filter)
+      if (positions.length < 3) {
+        // BROKERAGE SHIELD 1: Check Max Daily Trades Cap
+        if (maxDailyTrades > 0 && totalTrades >= maxDailyTrades) {
+          updateUI();
+          return;
+        }
+
+        const currentProfile = STRATEGY_PROFILES[strategyStyle] || STRATEGY_PROFILES.TREND;
+        const minBull = currentProfile.minScore;
+        const maxBear = currentProfile.maxBearScore || (100 - currentProfile.minScore);
+
+        // Feature 2: Time Window Filter Check
+        if (timeFilterActive && (timeWindowStatus === 'OPENING_VOLATILITY' || timeWindowStatus === 'SQUARE_OFF' || timeWindowStatus === 'MARKET_CLOSED')) {
+          return;
+        }
+
+        const candidates = universe.filter(u => {
+          if (positions.some(p => p.underlying === u.id)) return false;
+          if (isPriceFilterActive) {
+            if (priceFilterCondition === 'HIGHER' && u.price < priceFilterAmount) return false;
+            if (priceFilterCondition === 'LOWER' && u.price > priceFilterAmount) return false;
+          }
+          const isBull = u.score >= minBull;
+          const isBear = u.score <= maxBear;
+          if (!isBull && !isBear) return false;
+          if (tradeDirection === 'BUY_ONLY' && !isBull) return false;
+          if (tradeDirection === 'SELL_ONLY' && !isBear) return false;
+
+          // Feature 1: NIFTY Trend Filter (Never swim against the tide!)
+          if (niftyFilterActive && u.id !== 'NIFTY') {
+            if (isBull && niftyTrend !== 'BULLISH') return false;
+            if (isBear && niftyTrend !== 'BEARISH') return false;
+          }
+
+          // Feature 2: Midday Chop Check - only permit if volume is institutional surge (RVOL >= 2.5x)
+          if (timeFilterActive && timeWindowStatus === 'MIDDAY_CHOP' && (u.rvol || 1.0) < 2.5) return false;
+
+          // Feature 3: 15m Multi-Timeframe Alignment
+          if (mtfFilterActive) {
+            if (isBull && u.mtf_trend_15m === 'BEARISH') return false;
+            if (isBear && u.mtf_trend_15m === 'BULLISH') return false;
+          }
+
+          // Feature 4: EMA Dynamic Ribbon Filter (9 EMA & 20 EMA)
+          if (emaFilterActive) {
+            if (isBull && (u.ema_trend === 'BEARISH' || u.price < (u.ema20 || u.price))) return false;
+            if (isBear && (u.ema_trend === 'BULLISH' || u.price > (u.ema20 || u.price))) return false;
+          }
+
+          // Feature 5: VWAP Pullback Zone Filter (Avoid overbought top buying)
+          if (vwapPullbackFilterActive && u.vwap > 0) {
+            const vwapDistPct = ((u.price - u.vwap) / u.vwap) * 100;
+            const maxAllowedDist = currentProfile.maxVwapDist || maxVwapDistPct;
+            if (isBull && vwapDistPct > maxAllowedDist) return false;
+            if (isBear && vwapDistPct < -maxAllowedDist) return false;
+          }
+
+          // Feature 6: Institutional Volume Surge Filter (Minimum RVOL threshold)
+          if (rvolFilterActive) {
+            const minReqRvol = currentProfile.minRvol || minRvolThreshold;
+            if ((u.rvol || 1.0) < minReqRvol) return false;
+          }
+
+          return true;
+        });
+
+        if (candidates.length > 0) {
+          candidates.sort((a,b) => Math.abs(b.score - 50) - Math.abs(a.score - 50));
+          const top = candidates[0];
+          const isBullish = top.score >= minBull;
+          const bias = isBullish ? "BULLISH" : "BEARISH";
+          const tradeSide = isBullish ? 'BUY' : 'SELL';
+          const userSlAmount = getEffectiveSlAmount(tradeSide);
+          const userTpAmount = getEffectiveTpAmount(tradeSide);
+          const isCustomActive = (tradeSide === 'BUY' && (customBuySl !== null || customBuyTp !== null)) || 
+                                 (tradeSide === 'SELL' && (customSellSl !== null || customSellTp !== null));
+          const modeTag = isCustomActive ? `[Custom ${tradeSide} SL/TP: SL -₹${userSlAmount} | TP +₹${userTpAmount}]` : '[Normal SL/TP]';
+
+          if (top.type === 'INDEX') {
+            const strike = Math.round(top.price / 50) * 50;
+            const optType = isBullish ? 'CE' : 'PE';
+            const symbol = `${top.id} ${strike} ${optType}`;
+            const entry = Math.round(top.price * 0.0075 * 100) / 100;
+            const lot = top.id === 'NIFTY' ? 50 : 15;
+            
+            // Expected loss per unit sized strictly against ₹ Stop Loss Amount
+            const lossPerUnit = Math.max(1.0, entry * (1 - currentProfile.optSl));
+            const qty = Math.max(lot, Math.floor((userSlAmount / lossPerUnit) / lot) * lot);
+            
+            // Exact price targets derived from user's ₹ amounts:
+            const sl = Math.max(1.0, Math.round((entry - (userSlAmount / qty)) * 100) / 100);
+            const tp = Math.round((entry + (userTpAmount / qty)) * 100) / 100;
+
+            positions.push({
+              id: 'P_' + Date.now().toString().slice(-5),
+              symbol: symbol,
+              underlying: top.id,
+              isOption: true,
+              basePrice: top.price,
+              type: 'BUY',
+              qty: qty,
+              entry: entry,
+              ltp: entry,
+              sl: sl,
+              tp: tp,
+              slAmount: userSlAmount,
+              tpAmount: userTpAmount,
+              isCustomSltp: isCustomActive,
+              trailing: false,
+              trailTrigger: currentProfile.trailTrigger,
+              trailDistance: currentProfile.trailDistance,
+              styleTag: currentProfile.tag,
+              pnl: 0,
+              reason: `${bias} Setup (${optType}) • Score: ${top.score}%`
+            });
+            addLog(`EXECUTED [${currentProfile.name}]: BUY ${qty}x ${symbol} @ ₹${entry.toFixed(2)} | Target: +₹${userTpAmount} (@ ₹${tp.toFixed(2)}) | SL: -₹${userSlAmount} (@ ₹${sl.toFixed(2)}) ${modeTag}`, 'text-emerald-300 font-bold');
+          } else { // EQUITY
+            const entry = top.price;
+            const lossPerUnit = Math.max(0.5, entry * (1 - currentProfile.eqSl));
+            const qty = Math.max(5, Math.floor(userSlAmount / lossPerUnit));
+
+            let side, sl, tp, reasonStr;
+            if (isBullish) {
+              side = 'BUY';
+              sl = Math.max(0.5, Math.round((entry - (userSlAmount / qty)) * 100) / 100);
+              tp = Math.round((entry + (userTpAmount / qty)) * 100) / 100;
+              reasonStr = `Bullish Breakout (Long) • Score: ${top.score}%`;
+            } else {
+              side = 'SELL';
+              sl = Math.round((entry + (userSlAmount / qty)) * 100) / 100;
+              tp = Math.max(0.5, Math.round((entry - (userTpAmount / qty)) * 100) / 100);
+              reasonStr = `Bearish Breakdown (Short) • Score: ${top.score}%`;
+            }
+
+            positions.push({
+              id: 'P_' + Date.now().toString().slice(-5),
+              symbol: top.id + ' MIS',
+              underlying: top.id,
+              isOption: false,
+              basePrice: top.price,
+              type: side,
+              qty: qty,
+              entry: entry,
+              ltp: entry,
+              sl: sl,
+              tp: tp,
+              slAmount: userSlAmount,
+              tpAmount: userTpAmount,
+              isCustomSltp: isCustomActive,
+              trailing: false,
+              trailTrigger: currentProfile.trailTrigger,
+              trailDistance: currentProfile.trailDistance,
+              styleTag: currentProfile.tag,
+              pnl: 0,
+              reason: reasonStr
+            });
+            const logColor = side === 'BUY' ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold';
+            addLog(`EXECUTED [${currentProfile.name}]: ${side} ${qty} shares ${top.id} @ ₹${entry.toFixed(2)} | Target: +₹${userTpAmount} (@ ₹${tp.toFixed(2)}) | SL: -₹${userSlAmount} (@ ₹${sl.toFixed(2)}) ${modeTag}`, logColor);
+          }
+        }
+      }
+
+      updateUI();
+    }, 1000);
+
+    const prevPricesStation = {};
+
+    function isStockQualifiedForModel(u, model) {
+      const prof = STRATEGY_PROFILES[model] || STRATEGY_PROFILES.TREND;
+      const minScore = prof.minScore || 75;
+      const maxBear = prof.maxBearScore || 25;
+      const isBull = u.score >= minScore;
+      const isBear = u.score <= maxBear;
+      if (!isBull && !isBear) return false;
+
+      // Trade direction filter
+      if (tradeDirection === 'BUY_ONLY' && !isBull) return false;
+      if (tradeDirection === 'SELL_ONLY' && !isBear) return false;
+
+      // 1. RVOL Surge threshold check
+      const reqRvol = prof.minRvol || 1.1;
+      const rvolVal = u.rvol || 1.0;
+      if (rvolVal < reqRvol) return false;
+
+      // 2. VWAP Pullback Zone check
+      const maxDist = prof.maxVwapDist || 1.5;
+      const vwapVal = u.vwap || u.price;
+      if (vwapVal > 0) {
+        const distPct = Math.abs(((u.price - vwapVal) / vwapVal) * 100);
+        if (distPct > maxDist) return false;
+      }
+
+      // 3. Trend Rider & Safe Sniper filters (9/20 EMA + 15m MTF)
+      if (model === 'TREND' || model === 'SNIPER') {
+        if (isBull && u.ema_trend && u.ema_trend !== 'BULLISH') return false;
+        if (isBear && u.ema_trend && u.ema_trend !== 'BEARISH') return false;
+        if (isBull && u.mtf_trend_15m && u.mtf_trend_15m !== 'BULLISH') return false;
+        if (isBear && u.mtf_trend_15m && u.mtf_trend_15m !== 'BEARISH') return false;
+      }
+
+      // 4. Safe Sniper Institutional Strict Confirmation
+      if (model === 'SNIPER') {
+        if (u.nifty_aligned === false) return false;
+        if (u.vwap_safe === false) return false;
+        if (u.rvol_safe === false) return false;
+      }
+
+      return true;
+    }
+
+    function toggleModelFilter() {
+      isModelFilterActive = !isModelFilterActive;
+      updateModelFilterUI();
+      renderScannerList();
+      const prof = STRATEGY_PROFILES[strategyStyle] || STRATEGY_PROFILES.TREND;
+      if (isModelFilterActive) {
+        const count = universe.filter(u => isStockQualifiedForModel(u, strategyStyle)).length;
+        addLog(`🎯 Model Filter ACTIVE: Radar filtered to show only ${count} stocks qualifying for ${prof.name}`, 'text-emerald-400 font-bold');
+      } else {
+        addLog(`🔍 Model Filter OFF: Radar showing all ${universe.length} NSE stocks`, 'text-slate-400');
+      }
+    }
+
+    function updateModelFilterUI() {
+      const btn = document.getElementById('btn-model-filter');
+      const icon = document.getElementById('model-filter-icon');
+      const badge = document.getElementById('model-filter-badge');
+      if (!btn || !badge) return;
+
+      const qualifiedCount = universe.filter(u => isStockQualifiedForModel(u, strategyStyle)).length;
+
+      if (isModelFilterActive) {
+        btn.className = "px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer bg-emerald-950/80 text-emerald-300 border border-emerald-500/60 shadow-lg ring-1 ring-emerald-400/40";
+        if (icon) icon.innerText = "🎯";
+        badge.className = "text-[10px] px-1.5 py-0.5 rounded font-bold mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+        badge.innerText = `ON (${qualifiedCount} Qualified)`;
+      } else {
+        btn.className = "px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer bg-slate-950 border border-slate-700 hover:border-slate-600 text-slate-300 shadow-sm";
+        if (icon) icon.innerText = "🔍";
+        badge.className = "text-[10px] px-1.5 py-0.5 rounded font-bold mono bg-slate-800 text-slate-400 border border-slate-700";
+        badge.innerText = `OFF (${qualifiedCount} Ready)`;
+      }
+    }
+
+    function renderScannerList() {
+      const scannerEl = document.getElementById('scanner-list');
+      let filtered = universe;
+      if (currentFilter !== 'ALL') {
+        filtered = universe.filter(u => u.sector === currentFilter);
+      }
+
+      // Filter by price if active
+      if (isPriceFilterActive) {
+        filtered = filtered.filter(u => {
+          if (priceFilterCondition === 'HIGHER') return u.price >= priceFilterAmount;
+          if (priceFilterCondition === 'LOWER') return u.price <= priceFilterAmount;
+          return true;
+        });
+      }
+
+      // Filter by model qualification if active
+      if (isModelFilterActive) {
+        filtered = filtered.filter(u => isStockQualifiedForModel(u, strategyStyle));
+      }
+
+      updateModelFilterUI();
+      
+      // Sort highest confidence scores to the top
+      filtered.sort((a,b) => b.score - a.score);
+      const minTrigger = STRATEGY_PROFILES[strategyStyle]?.minScore || 75;
+      const maxBear = STRATEGY_PROFILES[strategyStyle]?.maxBearScore || 25;
+
+      if (filtered.length === 0) {
+        if (isModelFilterActive) {
+          const profName = STRATEGY_PROFILES[strategyStyle]?.name || strategyStyle;
+          scannerEl.innerHTML = `
+            <div class="py-8 text-center text-slate-500 text-xs space-y-1.5">
+              <div class="text-sm">🎯</div>
+              <div class="font-medium text-slate-400">No stocks currently qualify for ${profName}</div>
+              <div class="text-[11px] text-slate-600">Waiting for volume surge, EMA ribbon alignment, or VWAP pullback. Turn OFF filter to view all 89 stocks.</div>
+            </div>
+          `;
+          return;
+        }
+        const condSymbol = priceFilterCondition === 'HIGHER' ? '≥' : '≤';
+        scannerEl.innerHTML = `
+          <div class="py-8 text-center text-slate-500 text-xs space-y-1.5">
+            <div class="text-sm">🔍</div>
+            <div class="font-medium text-slate-400">No stocks match Price ${condSymbol} ₹${priceFilterAmount.toLocaleString('en-IN')}</div>
+            <div class="text-[11px] text-slate-600">Turn OFF the switch or adjust the amount to show all stocks.</div>
+          </div>
+        `;
+        return;
+      }
+
+      scannerEl.innerHTML = filtered.map(item => {
+        let badgeClass = 'bg-slate-800 text-slate-400';
+        if (item.score >= minTrigger) {
+          badgeClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 animate-pulse';
+        } else if (item.score <= maxBear) {
+          badgeClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse';
+        }
+
+        const prev = prevPricesStation[item.id] !== undefined ? prevPricesStation[item.id] : item.price;
+        let tickColor = 'text-slate-300';
+        let tickIcon = '';
+        if (item.price > prev) {
+          tickColor = 'text-emerald-400 font-bold';
+          tickIcon = '<span class="text-[9px] text-emerald-400 ml-0.5">▲</span>';
+        } else if (item.price < prev) {
+          tickColor = 'text-rose-400 font-bold';
+          tickIcon = '<span class="text-[9px] text-rose-400 ml-0.5">▼</span>';
+        }
+        prevPricesStation[item.id] = item.price;
+
+        const niftyPill = item.nifty_aligned !== false
+          ? '<span class="text-[9px] px-1 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold" title="Matches NIFTY 50 Macro Direction">NIFTY ✓</span>'
+          : '<span class="text-[9px] px-1 py-0.2 rounded bg-slate-900 text-slate-500 border border-slate-800 font-medium" title="Counter to NIFTY Direction">Counter</span>';
+        const emaPill = `<span class="text-[9px] px-1 py-0.2 rounded ${item.ema_trend === 'BULLISH' ? 'bg-indigo-950 text-indigo-300 border border-indigo-800' : (item.ema_trend === 'BEARISH' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-slate-900 text-slate-400 border border-slate-800')} font-bold">EMA ${item.ema_trend === 'BULLISH' ? '9>20' : (item.ema_trend === 'BEARISH' ? '9<20' : 'Flat')}</span>`;
+        const mtfPill = `<span class="text-[9px] px-1 py-0.2 rounded ${item.mtf_trend_15m === 'BULLISH' ? 'bg-blue-950 text-blue-300 border border-blue-800' : 'bg-rose-950 text-rose-300 border border-rose-800'} font-bold">15m ${item.mtf_trend_15m === 'BULLISH' ? 'BULL' : 'BEAR'}</span>`;
+        const vwapVal = item.vwap || item.price;
+        const vwapDist = vwapVal > 0 ? (((item.price - vwapVal) / vwapVal) * 100).toFixed(1) : '0.0';
+        const isPullback = Math.abs(parseFloat(vwapDist)) <= 1.2;
+        const vwapPill = `<span class="text-[9px] px-1 py-0.2 rounded ${isPullback ? 'bg-teal-950 text-teal-300 border border-teal-800 font-bold' : 'bg-amber-950 text-amber-300 border border-amber-800 font-medium'}" title="Distance from VWAP: ${vwapDist}%">${isPullback ? 'VWAP Safe' : 'Ext ' + (parseFloat(vwapDist) > 0 ? '+' : '') + vwapDist + '%'}</span>`;
+        const rvolVal = item.rvol || 1.0;
+        const isSurge = rvolVal >= 1.5;
+        const rvolPill = `<span class="text-[9px] px-1 py-0.2 rounded ${isSurge ? 'bg-pink-950 text-pink-300 border border-pink-800 font-bold' : 'bg-slate-900 text-slate-400 border border-slate-800 font-medium'}" title="Relative Volume: ${rvolVal}x">RVOL ${rvolVal}x${isSurge ? ' 🔥' : ''}</span>`;
+
+        return `
+        <div class="py-2 flex items-center justify-between text-xs hover:bg-slate-800/30 px-1 rounded-lg">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-white">${item.name}</span>
+              <span class="mono ${tickColor} text-[11px] transition-colors">₹${item.price.toFixed(2)}${tickIcon}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+              <span class="text-[10px] text-slate-400">${item.pattern}</span>
+              <span class="text-slate-600">•</span>
+              ${niftyPill}
+              ${emaPill}
+              ${mtfPill}
+              ${vwapPill}
+              ${rvolPill}
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold mono ${badgeClass}">
+              ${item.score}% Score
+            </span>
+            <button onclick="removeStock('${item.id}', event)" class="text-slate-600 hover:text-rose-400 font-bold px-1 text-sm cursor-pointer" title="Remove stock">×</button>
+          </div>
+        </div>
+      `}).join('');
+    }
+
+    function updateUI() {
+      // Status
+      const statusEl = document.getElementById('bot-status');
+      const pulseEl = document.getElementById('bot-pulse');
+      const btnStart = document.getElementById('btn-start');
+
+      if (isRunning) {
+        statusEl.innerText = "RUNNING (AI ACTIVE)";
+        statusEl.className = "text-xs font-bold text-emerald-400 uppercase";
+        pulseEl.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+        btnStart.disabled = true;
+      } else {
+        statusEl.innerText = killSwitchHit ? "HALTED (LIMIT HIT)" : "STOPPED";
+        statusEl.className = "text-xs font-bold text-rose-400 uppercase";
+        pulseEl.className = "w-2 h-2 rounded-full bg-rose-500";
+        btnStart.disabled = false;
+      }
+
+      // KPIs
+      const totalBrokerage = totalTrades * brokeragePerTrade;
+      const grossPnl = realizedPnl + unrealizedPnl;
+      const netPnl = grossPnl - totalBrokerage;
+
+      document.getElementById('card-capital').innerText = `₹${(initialCapital + realizedPnl - totalBrokerage + unrealizedPnl).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('card-init-capital').innerText = `₹${initialCapital.toLocaleString('en-IN')}`;
+
+      const pnlEl = document.getElementById('card-pnl');
+      if (netPnl >= 0) {
+        pnlEl.innerText = `+₹${netPnl.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        pnlEl.className = "mt-1 text-2xl font-bold mono text-emerald-400";
+      } else {
+        pnlEl.innerText = `-₹${Math.abs(netPnl).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        pnlEl.className = "mt-1 text-2xl font-bold mono text-rose-400";
+      }
+
+      const grossPnlEl = document.getElementById('card-gross-pnl');
+      if (grossPnlEl) {
+        grossPnlEl.innerText = (realizedPnl >= 0 ? '+' : '') + `₹${realizedPnl.toFixed(2)}`;
+        grossPnlEl.className = realizedPnl >= 0 ? "mono text-emerald-400" : "mono text-rose-400";
+      }
+      const brokTotalEl = document.getElementById('card-brokerage-total');
+      if (brokTotalEl) {
+        brokTotalEl.innerText = `-₹${totalBrokerage.toFixed(2)}`;
+      }
+      const brokTagEl = document.getElementById('card-brokerage-tag');
+      if (brokTagEl) {
+        brokTagEl.innerText = `Charges: -₹${totalBrokerage.toLocaleString('en-IN')} (${totalTrades} × ₹50)`;
+      }
+
+      document.getElementById('card-unrealized').innerText = `₹${unrealizedPnl.toFixed(2)}`;
+
+      // Loss Limit (measured against true Net P&L)
+      const usedPct = Math.min(100, Math.max(0, (Math.abs(Math.min(0, netPnl)) / dailyLossLimit) * 100));
+      document.getElementById('card-loss-pct').innerText = `${usedPct.toFixed(1)}% Used`;
+      document.getElementById('card-limit-val').innerText = `Limit: ₹${dailyLossLimit.toLocaleString()}`;
+      document.getElementById('card-loss-rem').innerText = `₹${Math.max(0, dailyLossLimit - Math.abs(Math.min(0, netPnl))).toFixed(0)} left`;
+
+      const bar = document.getElementById('loss-bar');
+      bar.style.width = `${usedPct}%`;
+      if (usedPct >= 80) bar.className = "h-full bg-rose-500 transition-all";
+      else if (usedPct >= 40) bar.className = "h-full bg-amber-500 transition-all";
+      else bar.className = "h-full bg-emerald-500 transition-all";
+
+      // Win Rate & Trade Cap
+      const wr = totalTrades > 0 ? ((winTrades / totalTrades) * 100).toFixed(1) : "0.0";
+      document.getElementById('card-winrate').innerText = `${wr}%`;
+      document.getElementById('card-wins').innerText = winTrades;
+      const losses = totalTrades - winTrades;
+      const lossesEl = document.getElementById('card-losses');
+      if (lossesEl) lossesEl.innerText = losses;
+
+      const capPill = document.getElementById('card-trade-cap-pill');
+      const statusPill = document.getElementById('card-trade-status');
+      if (maxDailyTrades > 0) {
+        if (capPill) capPill.innerText = `${totalTrades}/${maxDailyTrades} Trades`;
+        if (totalTrades >= maxDailyTrades) {
+          if (capPill) capPill.className = "text-[10px] px-1.5 py-0.5 rounded font-bold mono bg-amber-500/20 text-amber-300 border border-amber-500/40";
+          if (statusPill) {
+            statusPill.innerText = "🔒 Cap Reached (Protected)";
+            statusPill.className = "text-[10px] font-bold text-amber-400";
+          }
+        } else {
+          if (capPill) capPill.className = "text-[10px] px-1.5 py-0.5 rounded font-bold mono bg-slate-800 text-slate-300";
+          if (statusPill) {
+            statusPill.innerText = `${maxDailyTrades - totalTrades} trades left`;
+            statusPill.className = "text-[10px] font-semibold text-emerald-400";
+          }
+        }
+      } else {
+        if (capPill) capPill.innerText = `${totalTrades} Trades (No Cap)`;
+        if (statusPill) {
+          statusPill.innerText = "No Cap Active";
+          statusPill.className = "text-[10px] font-semibold text-slate-400";
+        }
+      }
+
+      // Positions Table
+      const posTbody = document.getElementById('pos-tbody');
+      document.getElementById('pos-badge').innerText = positions.length;
+      const minTrigger = STRATEGY_PROFILES[strategyStyle]?.minScore || 75;
+      if (positions.length === 0) {
+        posTbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-500">${isRunning ? `AI Scanner is watching all stocks for ≥ ${minTrigger}% setups...` : 'No open positions. Start the AI Bot to begin.'}</td></tr>`;
+      } else {
+        posTbody.innerHTML = positions.map(pos => {
+          let badgeColor = 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
+          if (pos.styleTag === 'SCALP') badgeColor = 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
+          else if (pos.styleTag === 'SNIPER') badgeColor = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+
+          return `
+          <tr class="border-b border-slate-800/60 hover:bg-slate-800/30">
+            <td class="py-2.5 px-3">
+              <div class="flex items-center space-x-1.5">
+                <span class="font-bold text-white">${pos.symbol}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${badgeColor}">[${pos.styleTag || 'TREND'}]</span>
+              </div>
+              <div class="text-[10px] text-slate-400">${pos.reason}</div>
+            </td>
+            <td class="py-2.5 px-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${pos.type === 'BUY' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}">${pos.type}</span></td>
+            <td class="py-2.5 px-2 mono text-slate-300">${pos.qty}</td>
+            <td class="py-2.5 px-2 mono text-slate-300">₹${pos.entry.toFixed(2)}</td>
+            <td class="py-2.5 px-2 mono font-bold text-white">₹${pos.ltp.toFixed(2)}</td>
+            <td class="py-2.5 px-2 mono text-[10px]">
+              <div class="text-rose-400 font-semibold">SL: ₹${pos.sl.toFixed(2)} <span class="text-slate-400 font-normal">(-₹${(pos.slAmount || 1000).toFixed(0)})</span> ${pos.trailing ? '<span class="text-amber-400 font-bold">[Trail]</span>' : ''}</div>
+              <div class="text-emerald-400 font-semibold">TP: ₹${pos.tp.toFixed(2)} <span class="text-slate-400 font-normal">(+₹${(pos.tpAmount || 2000).toFixed(0)})</span></div>
+              <div class="mt-0.5">
+                ${pos.isCustomSltp ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${getTradeSide(pos) === 'BUY' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">Custom ${getTradeSide(pos)} SL/TP</span>` : '<span class="px-1.5 py-0.2 rounded text-[9px] font-medium text-slate-500">Normal SL/TP</span>'}
+              </div>
+            </td>
+            <td class="py-2.5 px-2 mono font-bold ${pos.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+              ${pos.pnl >= 0 ? '+' : ''}₹${pos.pnl.toFixed(2)}
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <div class="flex items-center justify-end space-x-1.5">
+                <button onclick="openEditSlTpModal('${pos.id}')" class="px-2 py-1 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 hover:text-white rounded text-[10px] border border-indigo-700/60 cursor-pointer flex items-center space-x-1" title="Edit SL/TP Amount">
+                  <span>✏️ Edit SL/TP</span>
+                </button>
+                <button onclick="manualExit('${pos.id}')" class="px-2 py-1 bg-slate-800 hover:bg-rose-900 text-slate-300 hover:text-white rounded text-[10px] border border-slate-700 cursor-pointer">Exit</button>
+              </div>
+            </td>
+          </tr>
+          `;
+        }).join('');
+      }
+
+      // History Table
+      const histTbody = document.getElementById('hist-tbody');
+      if (history.length === 0) {
+        histTbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-500">No closed trades yet today.</td></tr>`;
+      } else {
+        histTbody.innerHTML = history.slice(0, 15).map(h => {
+          let badgeColor = 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
+          if (h.styleTag === 'SCALP') badgeColor = 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
+          else if (h.styleTag === 'SNIPER') badgeColor = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+
+          return `
+          <tr class="border-b border-slate-800/40 hover:bg-slate-800/20">
+            <td class="py-2 px-3">
+              <div class="flex items-center space-x-1.5 font-semibold text-white">
+                <span>${h.symbol}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${badgeColor}">[${h.styleTag || 'TREND'}]</span>
+              </div>
+            </td>
+            <td class="py-2 px-2 text-[10px] font-bold ${h.type === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}">${h.type}</td>
+            <td class="py-2 px-2 mono text-slate-400">${h.qty}</td>
+            <td class="py-2 px-2 mono text-slate-400">₹${h.entry.toFixed(2)}</td>
+            <td class="py-2 px-2 mono text-slate-400">₹${h.exit.toFixed(2)}</td>
+            <td class="py-2 px-2 mono font-bold ${h.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${h.pnl >= 0 ? '+' : ''}₹${h.pnl.toFixed(2)}</td>
+            <td class="py-2 px-3 text-[10px] text-slate-400">${h.reason}</td>
+          </tr>
+          `;
+        }).join('');
+      }
+
+      renderScannerList();
+    }
+
+    document.getElementById('stock-count-badge').innerText = universe.length;
+    setStrategyStyle('TREND');
+    updatePriceFilterUI();
+    updateMaxTradesBadge();
+    updateUI();
+
+    async function syncWithLiveServer() {
+      try {
+        const res = await fetch('/api/status', { method: 'GET', cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (!isServerConnected) {
+            isServerConnected = true;
+            addLog("🟢 Connected to Python Live NSE Engine at http://localhost:5000", "text-emerald-400 font-bold");
+          }
+
+          // Initial load of saved settings from Python server
+          if (!hasLoadedServerSettings && data.initial_capital) {
+            hasLoadedServerSettings = true;
+            initialCapital = data.initial_capital;
+            if (data.daily_loss_limit) dailyLossLimit = data.daily_loss_limit;
+            if (data.risk_per_trade_pct) riskPerTradePct = data.risk_per_trade_pct;
+            if (data.max_daily_trades !== undefined) maxDailyTrades = data.max_daily_trades;
+
+            const capEl = document.getElementById('input-capital');
+            if (capEl) capEl.value = initialCapital;
+            const lossEl = document.getElementById('input-loss-limit');
+            if (lossEl) lossEl.value = dailyLossLimit;
+            const riskEl = document.getElementById('input-risk-pct');
+            if (riskEl) riskEl.value = riskPerTradePct;
+            const maxTradesEl = document.getElementById('input-max-trades');
+            if (maxTradesEl) maxTradesEl.value = maxDailyTrades;
+
+            const riskAmt = Math.round((initialCapital * riskPerTradePct) / 100);
+            const riskAmtEl = document.getElementById('input-risk-amount');
+            if (riskAmtEl) riskAmtEl.value = riskAmt;
+
+            updateRiskBadge();
+            updateMaxTradesBadge();
+            updateUI();
+          }
+
+          // Update header feed badge
+          const feedBadge = document.getElementById('feed-source-badge');
+          if (feedBadge) {
+            feedBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 flex items-center space-x-1 shadow-sm";
+            feedBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block mr-1"></span>REAL NSE LIVE FEED';
+          }
+
+          // Update clock if feed provides last_fetch_time
+          if (data.feed_status && data.feed_status.last_fetch_time) {
+            const clockEl = document.getElementById('clock');
+            if (clockEl) clockEl.innerText = data.feed_status.last_fetch_time;
+          }
+
+          // Sync accuracy filter state from server
+          if (data.nifty_trend) niftyTrend = data.nifty_trend;
+          if (data.time_window_status) timeWindowStatus = data.time_window_status;
+          if (data.time_window_message) timeWindowMsg = data.time_window_message;
+          if (data.nifty_filter_active !== undefined) niftyFilterActive = data.nifty_filter_active;
+          if (data.time_filter_active !== undefined) timeFilterActive = data.time_filter_active;
+          if (data.mtf_filter_active !== undefined) mtfFilterActive = data.mtf_filter_active;
+          if (data.ema_filter_active !== undefined) emaFilterActive = data.ema_filter_active;
+          if (data.vwap_pullback_filter_active !== undefined) vwapPullbackFilterActive = data.vwap_pullback_filter_active;
+          if (data.rvol_filter_active !== undefined) rvolFilterActive = data.rvol_filter_active;
+          if (data.strategy_style && data.strategy_style !== strategyStyle && STRATEGY_PROFILES[data.strategy_style]) {
+            strategyStyle = data.strategy_style;
+            ['SCALPER', 'TREND', 'SNIPER'].forEach(s => {
+              const btn = document.getElementById(`style-btn-${s}`);
+              if (btn) {
+                btn.className = (s === strategyStyle) 
+                  ? "px-3 py-1 rounded-lg bg-indigo-600 text-white font-bold transition shadow-sm cursor-pointer"
+                  : "px-3 py-1 rounded-lg text-slate-400 hover:text-white font-medium transition cursor-pointer";
+              }
+            });
+            const badge = document.getElementById('style-description-badge');
+            if (badge) {
+              const prof = STRATEGY_PROFILES[strategyStyle];
+              badge.innerHTML = prof.badgeDesc;
+              badge.className = `text-[11px] px-3 py-1 rounded-lg ${prof.badgeClass}`;
+            }
+            updateRadarTriggerLabel();
+          }
+          updateAccuracyUI();
+
+          // Sync market data from Python real feed scanner
+          if (data.scanner && Array.isArray(data.scanner) && data.scanner.length > 0) {
+            data.scanner.forEach(item => {
+              // Sync with universe
+              const u = universe.find(x => x.id === item.id || (item.ticker && item.ticker.startsWith(x.id)));
+              if (u) {
+                u.price = item.current_price;
+                u.vwap = item.vwap;
+                u.score = item.score;
+                u.rvol = item.rvol;
+                if (item.pattern) u.pattern = item.pattern;
+                if (item.ema9) u.ema9 = item.ema9;
+                if (item.ema20) u.ema20 = item.ema20;
+                if (item.ema_trend) u.ema_trend = item.ema_trend;
+                if (item.mtf_trend_15m) u.mtf_trend_15m = item.mtf_trend_15m;
+                if (item.nifty_aligned !== undefined) u.nifty_aligned = item.nifty_aligned;
+                if (item.vwap_dist_pct !== undefined) u.vwap_dist_pct = item.vwap_dist_pct;
+                if (item.vwap_safe !== undefined) u.vwap_safe = item.vwap_safe;
+                if (item.rvol_safe !== undefined) u.rvol_safe = item.rvol_safe;
+              }
+              // Sync with NSE_DIRECTORY
+              const d = NSE_DIRECTORY.find(x => x.symbol === item.id);
+              if (d) {
+                d.price = item.current_price;
+              }
+            });
+            renderScannerList();
+          }
+
+          // If backend bot running status differs, synchronize
+          if (data.is_running !== undefined && data.is_running !== isRunning) {
+            isRunning = data.is_running;
+            updateUI();
+          }
+        }
+      } catch (err) {
+        if (isServerConnected) {
+          isServerConnected = false;
+        }
+      }
+    }
+
+    const saveBtnEl = document.getElementById('btn-save-settings');
+    if (saveBtnEl) {
+      saveBtnEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        saveSettings();
+      });
+    }
+
+    syncWithLiveServer();
+    setInterval(syncWithLiveServer, 1000);
+  </script>
+</body>
+</html>

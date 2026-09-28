@@ -1,0 +1,5 @@
+flask>=2.0.0
+flask-cors>=3.0.0
+yfinance>=0.2.38
+pandas>=2.0.0
+pytz>=2023.3
