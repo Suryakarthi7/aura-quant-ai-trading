@@ -819,14 +819,14 @@ INSTRUMENT_MAP = {
         "lot_size": 1,
         "default_price": 6950.00
     },
-    "ZOMATO": {
-        "ticker": "ZOMATO.NS",
-        "name": "Zomato Ltd",
+    "ETERNAL": {
+        "ticker": "ETERNAL.NS",
+        "name": "Eternal Ltd (Zomato)",
         "type": "EQUITY",
         "sector": "OTHER",
         "step": 1,
         "lot_size": 1,
-        "default_price": 275.00
+        "default_price": 327.35
     },
 }
 
