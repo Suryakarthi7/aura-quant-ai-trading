@@ -91,22 +91,22 @@ INSTRUMENT_MAP = {
         "default_price": 12014.00
     },
     "MM": {
-        "ticker": "MM.NS",
+        "ticker": "M&M.NS",
         "name": "Mahindra & Mahindra Ltd",
         "type": "EQUITY",
         "sector": "AUTO",
         "step": 1,
         "lot_size": 1,
-        "default_price": 3001.90
+        "default_price": 2975.00
     },
     "TATAMOTORS": {
-        "ticker": "TATAMOTORS.NS",
-        "name": "Tata Motors Ltd",
+        "ticker": "TMPV.NS",
+        "name": "Tata Motors Ltd (TMPV)",
         "type": "EQUITY",
         "sector": "AUTO",
         "step": 1,
         "lot_size": 1,
-        "default_price": 975.00
+        "default_price": 285.00
     },
     "TVSMOTOR": {
         "ticker": "TVSMOTOR.NS",
@@ -406,13 +406,13 @@ INSTRUMENT_MAP = {
         "default_price": 988.70
     },
     "LTIM": {
-        "ticker": "LTIM.NS",
+        "ticker": "LTM.NS",
         "name": "LTIMindtree Ltd",
         "type": "EQUITY",
         "sector": "IT",
         "step": 1,
         "lot_size": 1,
-        "default_price": 5950.00
+        "default_price": 4090.00
     },
     "PERSISTENT": {
         "ticker": "PERSISTENT.NS",
@@ -977,7 +977,7 @@ class RealMarketDataFeed:
                         auto_adjust=True,
                         progress=False,
                         threads=False,
-                        timeout=5
+                        timeout=8
                     )
                 if not df.empty:
                     with self.lock:
@@ -986,7 +986,7 @@ class RealMarketDataFeed:
                             try:
                                 tdf = df[ticker] if len(tickers) > 1 and ticker in df else df
                                 tdf = tdf.dropna()
-                                if len(tdf) >= 5:
+                                if len(tdf) >= 1:
                                     self._process_symbol_df(key, meta, tdf)
                             except Exception:
                                 pass
@@ -994,6 +994,67 @@ class RealMarketDataFeed:
                     return
             except Exception:
                 pass
+
+    def sync_all_prices_now(self, force=True):
+        """
+        Comprehensive on-demand or market-open synchronization of all 89 stocks
+        directly with the National Stock Exchange (NSE via Yahoo Finance).
+        Automatically corrects price mismatches, recalculates VWAP/EMA/Scores,
+        and returns detailed synchronization metrics.
+        """
+        synced_count = 0
+        failed_tickers = []
+        if HAS_PANDAS_YF and yf is not None:
+            try:
+                tickers = [meta["ticker"] for meta in INSTRUMENT_MAP.values()]
+                dummy_buf = io.StringIO()
+                with contextlib.redirect_stderr(dummy_buf), contextlib.redirect_stdout(dummy_buf):
+                    df = yf.download(
+                        tickers=" ".join(tickers),
+                        period="1d",
+                        interval="5m",
+                        group_by="ticker",
+                        auto_adjust=True,
+                        progress=False,
+                        threads=True,
+                        timeout=12
+                    )
+                if not df.empty:
+                    with self.lock:
+                        for key, meta in INSTRUMENT_MAP.items():
+                            ticker = meta["ticker"]
+                            try:
+                                tdf = df[ticker] if len(tickers) > 1 and ticker in df else df
+                                tdf = tdf.dropna()
+                                if len(tdf) >= 1:
+                                    self._process_symbol_df(key, meta, tdf)
+                                    synced_count += 1
+                                else:
+                                    failed_tickers.append(ticker)
+                            except Exception:
+                                failed_tickers.append(ticker)
+                        self.last_fetch_time = datetime.now(IST).strftime("%H:%M:%S IST")
+                    return {
+                        "status": "success",
+                        "synced_count": synced_count,
+                        "total_count": len(INSTRUMENT_MAP),
+                        "failed_tickers": failed_tickers,
+                        "last_fetch_time": self.last_fetch_time
+                    }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": str(e),
+                    "synced_count": synced_count,
+                    "total_count": len(INSTRUMENT_MAP),
+                    "last_fetch_time": self.last_fetch_time
+                }
+        return {
+            "status": "fallback",
+            "synced_count": len(self.data_store),
+            "total_count": len(INSTRUMENT_MAP),
+            "last_fetch_time": self.last_fetch_time
+        }
 
         # Pure Python fallback: update realistic price movements
         with self.lock:

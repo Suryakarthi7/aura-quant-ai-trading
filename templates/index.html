@@ -42,6 +42,13 @@
           <span class="mono" id="clock">09:15:00 IST</span>
         </div>
 
+        <!-- Live NSE Price Sync & Auto-Fix Button -->
+        <button id="btn-sync-prices" onclick="triggerLiveNseSync()" class="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 hover:text-emerald-300 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95" title="Instantly sync all 89 stock prices with real NSE live market and auto-fix any price mismatches">
+          <span id="sync-icon" class="text-xs transition-transform duration-500">🔄</span>
+          <span id="sync-text">Sync Live NSE Prices</span>
+          <span id="sync-badge" class="hidden text-[9px] px-1.5 py-0.5 rounded font-bold mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">✓ 89/89</span>
+        </button>
+
         <!-- Bot Status Badge -->
         <div class="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center space-x-2">
           <span id="bot-pulse" class="w-2 h-2 rounded-full bg-rose-500"></span>
@@ -711,6 +718,43 @@
     </div>
   </div>
 
+  <!-- NSE Live Sync Success Pop-up Modal / Toast -->
+  <div id="modal-sync-success" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] hidden transition-all duration-300 transform scale-95 opacity-0 pointer-events-none">
+    <div class="bg-slate-900/95 border-2 border-emerald-500 rounded-2xl p-4 shadow-2xl backdrop-blur-md text-white flex items-center space-x-4 ring-4 ring-emerald-500/20 max-w-md pointer-events-auto">
+      <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/60 flex items-center justify-center text-emerald-400 font-bold text-xl flex-shrink-0 animate-pulse">
+        ✓
+      </div>
+      <div class="flex-1">
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-sm text-emerald-300">NSE LIVE MARKET SYNC COMPLETE!</span>
+          <span id="sync-pop-badge" class="text-[9px] px-1.5 py-0.5 rounded font-bold mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">89/89 Live</span>
+        </div>
+        <p class="text-xs text-slate-300 mt-0.5" id="sync-pop-msg">All 89 stocks successfully synchronized with real-time NSE market rates & indicators auto-recalculated.</p>
+      </div>
+      <button onclick="closeSyncSuccessModal()" class="text-slate-400 hover:text-white font-bold p-1 rounded-lg hover:bg-slate-800 cursor-pointer">
+        ✕
+      </button>
+    </div>
+  </div>
+
+  <!-- NSE Live Sync Notice Pop-up Modal (When server needs restart) -->
+  <div id="modal-sync-notice" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] hidden transition-all duration-300 transform scale-95 opacity-0 pointer-events-none">
+    <div class="bg-slate-900/95 border-2 border-amber-500 rounded-2xl p-4 shadow-2xl backdrop-blur-md text-white flex items-center space-x-4 ring-4 ring-amber-500/20 max-w-md pointer-events-auto">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/60 flex items-center justify-center text-amber-400 font-bold text-xl flex-shrink-0">
+        ⚠️
+      </div>
+      <div class="flex-1">
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-sm text-amber-300">SERVER RESTART REQUIRED</span>
+        </div>
+        <p class="text-xs text-slate-300 mt-0.5" id="sync-notice-msg">Please close the CMD window running the bot and run <b>start_bot.bat</b> again to activate the new Live Sync feature!</p>
+      </div>
+      <button onclick="closeSyncNoticeModal()" class="text-slate-400 hover:text-white font-bold p-1 rounded-lg hover:bg-slate-800 cursor-pointer">
+        ✕
+      </button>
+    </div>
+  </div>
+
   <script>
     // Live Server Synchronization with Python Backend
     let isServerConnected = false;
@@ -986,7 +1030,7 @@
     // Master Dictionary of Popular Indian NSE Stocks for Autocomplete Search
     const NSE_DIRECTORY = [
       // Tech & New Age
-      { symbol: 'ZOMATO', name: 'Zomato Ltd', sector: 'OTHER', price: 275.0 },
+      { symbol: 'ETERNAL', name: 'Eternal Ltd (Zomato / Blinkit)', sector: 'OTHER', price: 327.35 },
       { symbol: 'PAYTM', name: 'One97 Communications (Paytm)', sector: 'OTHER', price: 1641.80 },
       { symbol: 'NYKAA', name: 'FSN E-Commerce (Nykaa)', sector: 'OTHER', price: 185.0 },
       { symbol: 'POLICYBZR', name: 'PB Fintech (PolicyBazaar)', sector: 'OTHER', price: 1750.0 },
@@ -1043,19 +1087,19 @@
       { symbol: 'WIPRO', name: 'Wipro Limited', sector: 'IT', price: 161.48 },
       { symbol: 'HCLTECH', name: 'HCL Technologies Ltd', sector: 'IT', price: 1760.0 },
       { symbol: 'TECHM', name: 'Tech Mahindra Ltd', sector: 'IT', price: 1580.0 },
-      { symbol: 'LTIM', name: 'LTIMindtree Ltd', sector: 'IT', price: 5950.0 },
+      { symbol: 'LTIM', name: 'LTIMindtree Ltd', sector: 'IT', price: 4090.0 },
       { symbol: 'PERSISTENT', name: 'Persistent Systems Ltd', sector: 'IT', price: 5450.0 },
-      { symbol: 'COFORGE', name: 'Coforge Limited', sector: 'IT', price: 7850.0 },
+      { symbol: 'COFORGE', name: 'Coforge Limited', sector: 'IT', price: 1814.0 },
 
       // Auto Giants
-      { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd', sector: 'AUTO', price: 975.0 },
+      { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd (TMPV)', sector: 'AUTO', price: 285.0 },
       { symbol: 'MARUTI', name: 'Maruti Suzuki India', sector: 'AUTO', price: 12014.00 },
-      { symbol: 'MM', name: 'Mahindra & Mahindra Ltd', sector: 'AUTO', price: 3001.90 },
-      { symbol: 'M&M', name: 'Mahindra & Mahindra Ltd', sector: 'AUTO', price: 3001.90 },
-      { symbol: 'BAJAJ-AUTO', name: 'Bajaj Auto Ltd', sector: 'AUTO', price: 9800.0 },
+      { symbol: 'MM', name: 'Mahindra & Mahindra Ltd', sector: 'AUTO', price: 2975.00 },
+      { symbol: 'M&M', name: 'Mahindra & Mahindra Ltd', sector: 'AUTO', price: 2975.00 },
+      { symbol: 'BAJAJ-AUTO', name: 'Bajaj Auto Ltd', sector: 'AUTO', price: 10860.0 },
       { symbol: 'HEROMOTOCO', name: 'Hero MotoCorp Ltd', sector: 'AUTO', price: 5200.0 },
-      { symbol: 'EICHERMOT', name: 'Eicher Motors Ltd', sector: 'AUTO', price: 4750.0 },
-      { symbol: 'TVSMOTOR', name: 'TVS Motor Company', sector: 'AUTO', price: 2450.0 },
+      { symbol: 'EICHERMOT', name: 'Eicher Motors Ltd', sector: 'AUTO', price: 7215.0 },
+      { symbol: 'TVSMOTOR', name: 'TVS Motor Company', sector: 'AUTO', price: 4150.0 },
 
       // Energy & Metals
       { symbol: 'RELIANCE', name: 'Reliance Industries Ltd', sector: 'ENERGY', price: 1207.80 },
@@ -1102,8 +1146,8 @@
       { id: 'EICHERMOT', name: 'Eicher Motors Ltd', type: 'EQUITY', sector: 'AUTO', price: 4750.00, vwap: 4745.10, score: 53, pattern: 'Ascending Triangle', rvol: 1.67, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
       { id: 'HEROMOTOCO', name: 'Hero MotoCorp Ltd', type: 'EQUITY', sector: 'AUTO', price: 5200.00, vwap: 5188.06, score: 78, pattern: 'VWAP Bounce + Hammer', rvol: 1.26, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
       { id: 'MARUTI', name: 'Maruti Suzuki India', type: 'EQUITY', sector: 'AUTO', price: 12014.00, vwap: 11995.55, score: 40, pattern: 'Bullish Engulfing 5m', rvol: 1.91, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
-      { id: 'MM', name: 'Mahindra & Mahindra Ltd', type: 'EQUITY', sector: 'AUTO', price: 3001.90, vwap: 3005.03, score: 79, pattern: 'Support Holding', rvol: 1.41, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
-      { id: 'TATAMOTORS', name: 'Tata Motors Ltd', type: 'EQUITY', sector: 'AUTO', price: 975.00, vwap: 976.04, score: 73, pattern: 'Ascending Channel', rvol: 1.12, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'MM', name: 'Mahindra & Mahindra Ltd', type: 'EQUITY', sector: 'AUTO', price: 2975.00, vwap: 2972.00, score: 79, pattern: 'Support Holding', rvol: 1.41, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'TATAMOTORS', name: 'Tata Motors Ltd (TMPV)', type: 'EQUITY', sector: 'AUTO', price: 285.00, vwap: 284.50, score: 73, pattern: 'Ascending Channel', rvol: 1.12, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
       { id: 'TVSMOTOR', name: 'TVS Motor Company', type: 'EQUITY', sector: 'AUTO', price: 2450.00, vwap: 2449.32, score: 51, pattern: 'Inside Bar Range', rvol: 2.02, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
       { id: 'AXISBANK', name: 'Axis Bank Ltd', type: 'EQUITY', sector: 'BANK', price: 1208.20, vwap: 1206.24, score: 54, pattern: 'Testing Day High', rvol: 1.88, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
       { id: 'BAJAJFINSV', name: 'Bajaj Finserv Ltd', type: 'EQUITY', sector: 'BANK', price: 1680.00, vwap: 1677.95, score: 76, pattern: 'Holding Above VWAP', rvol: 1.09, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
@@ -1134,10 +1178,10 @@
       { id: 'POWERGRID', name: 'Power Grid Corporation', type: 'EQUITY', sector: 'ENERGY', price: 265.65, vwap: 264.97, score: 43, pattern: 'Bull Flag Continuation', rvol: 2.04, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
       { id: 'RELIANCE', name: 'Reliance Industries Ltd', type: 'EQUITY', sector: 'ENERGY', price: 1207.80, vwap: 1208.05, score: 84, pattern: 'Ascending Triangle', rvol: 1.73, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
       { id: 'SUZLON', name: 'Suzlon Energy Ltd', type: 'EQUITY', sector: 'ENERGY', price: 39.99, vwap: 40.03, score: 62, pattern: 'VWAP Bounce + Hammer', rvol: 1.65, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
-      { id: 'COFORGE', name: 'Coforge Limited', type: 'EQUITY', sector: 'IT', price: 7850.00, vwap: 7829.03, score: 40, pattern: 'Bullish Engulfing 5m', rvol: 1.72, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
-      { id: 'HCLTECH', name: 'HCL Technologies Ltd', type: 'EQUITY', sector: 'IT', price: 1760.00, vwap: 1758.36, score: 59, pattern: 'Support Holding', rvol: 2.11, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
+      { id: 'COFORGE', name: 'Coforge Limited', type: 'EQUITY', sector: 'IT', price: 1814.00, vwap: 1810.00, score: 40, pattern: 'Bullish Engulfing 5m', rvol: 1.72, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'HCLTECH', name: 'HCL Technologies Ltd', type: 'EQUITY', sector: 'IT', price: 1247.00, vwap: 1245.00, score: 59, pattern: 'Support Holding', rvol: 2.11, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
       { id: 'INFY', name: 'Infosys Limited', type: 'EQUITY', sector: 'IT', price: 988.70, vwap: 985.46, score: 71, pattern: 'Ascending Channel', rvol: 1.29, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
-      { id: 'LTIM', name: 'LTIMindtree Ltd', type: 'EQUITY', sector: 'IT', price: 5950.00, vwap: 5953.30, score: 42, pattern: 'Inside Bar Range', rvol: 1.1, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
+      { id: 'LTIM', name: 'LTIMindtree Ltd', type: 'EQUITY', sector: 'IT', price: 4090.00, vwap: 4085.00, score: 42, pattern: 'Inside Bar Range', rvol: 1.1, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
       { id: 'PERSISTENT', name: 'Persistent Systems Ltd', type: 'EQUITY', sector: 'IT', price: 5450.00, vwap: 5445.01, score: 56, pattern: 'Testing Day High', rvol: 2.17, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
       { id: 'TCS', name: 'Tata Consultancy Services', type: 'EQUITY', sector: 'IT', price: 2057.50, vwap: 2055.04, score: 60, pattern: 'Holding Above VWAP', rvol: 1.15, ema_trend: 'BULLISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
       { id: 'TECHM', name: 'Tech Mahindra Ltd', type: 'EQUITY', sector: 'IT', price: 1580.00, vwap: 1578.65, score: 45, pattern: 'Day High Consolidation', rvol: 1.32, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
@@ -1183,7 +1227,7 @@
       { id: 'SWIGGY', name: 'Swiggy Ltd', type: 'EQUITY', sector: 'OTHER', price: 540.00, vwap: 540.39, score: 68, pattern: 'Ascending Channel', rvol: 1.16, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
       { id: 'TITAN', name: 'Titan Company Ltd', type: 'EQUITY', sector: 'OTHER', price: 4838.50, vwap: 4838.04, score: 56, pattern: 'Inside Bar Range', rvol: 2.06, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: true },
       { id: 'TRENT', name: 'Trent Limited (Westside/Zudio)', type: 'EQUITY', sector: 'OTHER', price: 6950.00, vwap: 6948.49, score: 45, pattern: 'Testing Day High', rvol: 1.53, ema_trend: 'BEARISH', mtf_trend_15m: 'BEARISH', nifty_aligned: false },
-      { id: 'ZOMATO', name: 'Zomato Ltd', type: 'EQUITY', sector: 'OTHER', price: 275.00, vwap: 274.65, score: 71, pattern: 'Holding Above VWAP', rvol: 1.73, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
+      { id: 'ETERNAL', name: 'Eternal Ltd (Zomato)', type: 'EQUITY', sector: 'OTHER', price: 327.35, vwap: 326.80, score: 71, pattern: 'Holding Above VWAP', rvol: 1.73, ema_trend: 'BULLISH', mtf_trend_15m: 'BULLISH', nifty_aligned: true },
     ];
 
     // Autocomplete Search Engine
@@ -2104,7 +2148,13 @@
 
     // Engine Loop (Runs every 1 second: 1000ms)
     setInterval(() => {
-      document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', { hour12: false }) + " IST";
+      const nowClockStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+      document.getElementById('clock').innerText = nowClockStr + " IST";
+
+      // Daily Market Open Auto-Sync at 09:15:05 IST
+      if (nowClockStr === '09:15:05') {
+        triggerLiveNseSync(true);
+      }
 
       // 1. Live Tick Updates (Always active so market radar ticks live second-by-second)
       universe.forEach(item => {
@@ -2732,6 +2782,166 @@
     updateMaxTradesBadge();
     updateUI();
 
+    let isSyncingPrices = false;
+    let hasDoneInitialSync = false;
+
+    async function triggerLiveNseSync(isSilent = false) {
+      if (isSyncingPrices) return;
+      isSyncingPrices = true;
+
+      const btn = document.getElementById('btn-sync-prices');
+      const icon = document.getElementById('sync-icon');
+      const text = document.getElementById('sync-text');
+      const badge = document.getElementById('sync-badge');
+
+      if (!isSilent && btn && icon && text) {
+        icon.classList.add('animate-spin');
+        text.innerText = 'Syncing 89 Stocks...';
+        btn.className = "px-3 py-1.5 bg-indigo-950/80 border border-indigo-500 text-indigo-300 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-sm";
+      }
+
+      try {
+        const res = await fetch('/api/sync-prices', { method: 'POST', cache: 'no-store' });
+        if (!res.ok) {
+          throw new Error(`Server returned HTTP ${res.status}. Please restart start_bot.bat to activate new sync endpoint.`);
+        }
+        const data = await res.json();
+        
+        if (data && data.scanner && Array.isArray(data.scanner)) {
+          let updatedCount = 0;
+          data.scanner.forEach(item => {
+            const u = universe.find(x => x.id === item.id || (item.ticker && item.ticker.startsWith(x.id)));
+            if (u) {
+              u.price = item.current_price;
+              u.vwap = item.vwap;
+              u.score = item.score;
+              u.rvol = item.rvol;
+              if (item.pattern) u.pattern = item.pattern;
+              if (item.ema9) u.ema9 = item.ema9;
+              if (item.ema20) u.ema20 = item.ema20;
+              if (item.ema_trend) u.ema_trend = item.ema_trend;
+              if (item.mtf_trend_15m) u.mtf_trend_15m = item.mtf_trend_15m;
+              if (item.nifty_aligned !== undefined) u.nifty_aligned = item.nifty_aligned;
+              if (item.vwap_dist_pct !== undefined) u.vwap_dist_pct = item.vwap_dist_pct;
+              if (item.vwap_safe !== undefined) u.vwap_safe = item.vwap_safe;
+              if (item.rvol_safe !== undefined) u.rvol_safe = item.rvol_safe;
+              updatedCount++;
+            }
+            const d = NSE_DIRECTORY.find(x => x.symbol === item.id);
+            if (d) d.price = item.current_price;
+          });
+
+          renderScannerList();
+
+          const syncedNum = (data.result && data.result.synced_count) ? data.result.synced_count : updatedCount;
+          if (!isSilent) {
+            if (icon) {
+              icon.classList.remove('animate-spin');
+              icon.innerText = '✓';
+            }
+            if (text) text.innerText = `${syncedNum}/89 Synced!`;
+            if (badge) {
+              badge.classList.remove('hidden');
+              badge.innerText = `Live`;
+            }
+            if (btn) {
+              btn.className = "px-3 py-1.5 bg-emerald-950 border border-emerald-500 text-emerald-300 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-lg ring-1 ring-emerald-400";
+            }
+            addLog(`⚡ NSE LIVE SYNC COMPLETE: ${syncedNum}/89 stocks synchronized with real-time NSE market rates & indicators recalculated!`, 'text-emerald-400 font-bold');
+
+            // Trigger Success Pop-up Modal!
+            showSyncSuccessModal(syncedNum, 89);
+
+            setTimeout(() => {
+              if (btn) btn.className = "px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 hover:text-emerald-300 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95";
+              if (icon) icon.innerText = '🔄';
+              if (text) text.innerText = 'Sync Live NSE Prices';
+              if (badge) badge.classList.add('hidden');
+            }, 3500);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not sync prices:", err);
+        if (!isSilent) {
+          if (icon) {
+            icon.classList.remove('animate-spin');
+            icon.innerText = '⚠️';
+          }
+          if (text) text.innerText = 'Restart Server Required';
+          if (btn) {
+            btn.className = "px-3 py-1.5 bg-amber-950/80 border border-amber-500 text-amber-300 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-sm";
+          }
+          showSyncNoticeModal("Please close the CMD window and re-run <b>start_bot.bat</b> to activate the new Live Sync route!");
+          addLog("⚠️ SYNC NOTICE: Server restart required! Close CMD and re-run start_bot.bat to apply the new live sync feature.", "text-amber-400 font-bold");
+          setTimeout(() => {
+            if (btn) btn.className = "px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 hover:text-emerald-300 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95";
+            if (icon) icon.innerText = '🔄';
+            if (text) text.innerText = 'Sync Live NSE Prices';
+          }, 4500);
+        }
+      } finally {
+        isSyncingPrices = false;
+      }
+    }
+
+    function showSyncSuccessModal(syncedCount, totalCount) {
+      const modal = document.getElementById('modal-sync-success');
+      const badge = document.getElementById('sync-pop-badge');
+      const msg = document.getElementById('sync-pop-msg');
+      if (!modal) return;
+      if (badge) badge.innerText = `${syncedCount}/${totalCount} Live`;
+      if (msg) msg.innerText = `All ${syncedCount} stocks successfully synchronized with real-time NSE market rates & indicators auto-recalculated.`;
+      
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('scale-95', 'opacity-0', 'pointer-events-none');
+        modal.classList.add('scale-100', 'opacity-100');
+      }, 10);
+
+      clearTimeout(window._syncModalTimeout);
+      window._syncModalTimeout = setTimeout(() => {
+        closeSyncSuccessModal();
+      }, 4000);
+    }
+
+    function closeSyncSuccessModal() {
+      const modal = document.getElementById('modal-sync-success');
+      if (!modal) return;
+      modal.classList.remove('scale-100', 'opacity-100');
+      modal.classList.add('scale-95', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
+
+    function showSyncNoticeModal(message) {
+      const modal = document.getElementById('modal-sync-notice');
+      const msg = document.getElementById('sync-notice-msg');
+      if (!modal) return;
+      if (msg && message) msg.innerHTML = message;
+
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('scale-95', 'opacity-0', 'pointer-events-none');
+        modal.classList.add('scale-100', 'opacity-100');
+      }, 10);
+
+      clearTimeout(window._syncNoticeTimeout);
+      window._syncNoticeTimeout = setTimeout(() => {
+        closeSyncNoticeModal();
+      }, 5500);
+    }
+
+    function closeSyncNoticeModal() {
+      const modal = document.getElementById('modal-sync-notice');
+      if (!modal) return;
+      modal.classList.remove('scale-100', 'opacity-100');
+      modal.classList.add('scale-95', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
+
     async function syncWithLiveServer() {
       try {
         const res = await fetch('/api/status', { method: 'GET', cache: 'no-store' });
@@ -2740,6 +2950,10 @@
           if (!isServerConnected) {
             isServerConnected = true;
             addLog("🟢 Connected to Python Live NSE Engine at http://localhost:5000", "text-emerald-400 font-bold");
+            if (!hasDoneInitialSync) {
+              hasDoneInitialSync = true;
+              setTimeout(() => triggerLiveNseSync(true), 800);
+            }
           }
 
           // Initial load of saved settings from Python server

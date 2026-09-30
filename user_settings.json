@@ -1,7 +1,7 @@
 {
-  "initial_capital": 5000.0,
+  "initial_capital": 10000.0,
   "daily_loss_limit": 1000.0,
-  "risk_per_trade_pct": 2.0,
+  "risk_per_trade_pct": 1.0,
   "strategy_style": "TREND",
   "trade_direction": "BOTH",
   "max_daily_trades": 10,
@@ -10,7 +10,7 @@
   "price_filter_condition": "HIGHER",
   "price_filter_amount": 1000.0,
   "nifty_filter_active": true,
-  "time_filter_active": true,
+  "time_filter_active": false,
   "mtf_filter_active": true,
   "ema_filter_active": true,
   "vwap_pullback_filter_active": true,

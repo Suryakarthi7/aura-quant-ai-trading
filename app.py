@@ -90,6 +90,19 @@ if USE_FLASK:
         )
         return jsonify({"success": True, "message": "Settings updated successfully."})
 
+    @app.route("/api/sync-prices", methods=["POST", "GET"])
+    def sync_prices():
+        from market_data import real_feed
+        result = real_feed.sync_all_prices_now(force=True)
+        scanner_data = real_feed.get_all_data()
+        feed_status = real_feed.get_feed_status()
+        return jsonify({
+            "success": True,
+            "result": result,
+            "scanner": scanner_data,
+            "feed_status": feed_status
+        })
+
     @app.route("/api/close_position", methods=["POST"])
     def close_position():
         data = request.get_json(silent=True) or {}
@@ -210,6 +223,15 @@ else:
                 self.end_headers()
             elif clean_path in ["/api/status", "/api/live_state"]:
                 self._send_json(engine.get_state())
+            elif clean_path == "/api/sync-prices":
+                from market_data import real_feed
+                res = real_feed.sync_all_prices_now(force=True)
+                self._send_json({
+                    "success": True,
+                    "result": res,
+                    "scanner": real_feed.get_all_data(),
+                    "feed_status": real_feed.get_feed_status()
+                })
             elif clean_path == "/api/matches":
                 self._send_json({"success": True, "matches": []})
             else:
@@ -284,6 +306,15 @@ else:
             elif parsed.path == "/api/reset":
                 engine.reset_account()
                 self._send_json({"success": True, "message": "Account reset successfully."})
+            elif parsed.path == "/api/sync-prices":
+                from market_data import real_feed
+                res = real_feed.sync_all_prices_now(force=True)
+                self._send_json({
+                    "success": True,
+                    "result": res,
+                    "scanner": real_feed.get_all_data(),
+                    "feed_status": real_feed.get_feed_status()
+                })
             elif parsed.path.startswith("/hybridaction"):
                 self.send_response(204)
                 self.end_headers()
