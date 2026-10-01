@@ -933,10 +933,47 @@ class RealMarketDataFeed:
                     else:
                         data["vwap_dist_pct"] = 0.0
                     data["vwap_safe"] = abs(data["vwap_dist_pct"]) <= 1.2
-                    data["rvol_safe"] = data.get("rvol", 1.0) >= 1.5
+                    # Real deterministic Technical Confluence Score (18 - 92)
+                    calc_score = 50
+                    if data["trend"] == "BULLISH":
+                        calc_score += 12
+                    else:
+                        calc_score -= 12
 
-                    score_delta = int((random.random() - 0.48) * 3)
-                    data["score"] = max(20, min(95, data["score"] + score_delta))
+                    if data["ema_trend"] == "BULLISH":
+                        calc_score += 10
+                    elif data["ema_trend"] == "BEARISH":
+                        calc_score -= 10
+
+                    # RSI Sweet Spot: 52 to 68 is prime bullish momentum, 32 to 48 is prime bearish momentum
+                    if 52 <= data["rsi"] <= 68:
+                        calc_score += 10
+                    elif 32 <= data["rsi"] <= 48:
+                        calc_score -= 10
+                    elif data["rsi"] > 75: # Overbought risk (top buying trap)
+                        calc_score -= 8
+                    elif data["rsi"] < 25: # Oversold risk (bottom short trap)
+                        calc_score += 8
+
+                    # Institutional Volume confirmation
+                    if data.get("rvol", 1.0) >= 1.5:
+                        calc_score += 10 if data["trend"] == "BULLISH" else -10
+                    elif data.get("rvol", 1.0) >= 1.2:
+                        calc_score += 5 if data["trend"] == "BULLISH" else -5
+
+                    # VWAP Pullback safety (reward close to VWAP, penalize extended tops)
+                    if data["vwap_safe"]:
+                        calc_score += 6 if data["trend"] == "BULLISH" else -6
+                    elif abs(data.get("vwap_dist_pct", 0.0)) > 2.0:
+                        calc_score = max(35, min(65, calc_score))
+
+                    # MTF 15m trend confirmation
+                    if data.get("mtf_trend_15m") == "BULLISH":
+                        calc_score += 5
+                    elif data.get("mtf_trend_15m") == "BEARISH":
+                        calc_score -= 5
+
+                    data["score"] = max(18, min(92, calc_score))
                     
                     if data["score"] >= 75:
                         data["recommendation"] = "STRONG BUY"

@@ -11,17 +11,18 @@ IST = timezone(timedelta(hours=5, minutes=30))
 STRATEGY_PROFILES = {
     "SCALPER": {
         "name": "⚡ Quick Scalper",
-        "min_score": 70,
-        "max_bear_score": 30,
-        "min_rvol": 1.1,
-        "max_vwap_dist": 2.0,
-        "rr_ratio": 1.5,
-        "opt_sl": 0.92,      # -8% SL
-        "opt_tp": 1.12,      # +12% TP
-        "eq_sl": 0.996,      # -0.4% SL
-        "eq_tp": 1.008,      # +0.8% TP
-        "trail_trigger": 1.008,
-        "trail_dist": 0.995,
+        "min_score": 72,
+        "max_bear_score": 28,
+        "min_rvol": 1.2,
+        "max_vwap_dist": 1.8,
+        "rr_ratio": 1.25,        # 1:1.25 quick realistic targets
+        "opt_sl": 0.90,          # -10% SL
+        "opt_tp": 1.15,          # +15% TP
+        "eq_sl": 0.988,          # -1.2% SL (wide enough to survive 1m/5m noise)
+        "eq_tp": 1.015,          # +1.5% TP (high probability hit)
+        "breakeven_trigger": 0.005,  # +0.5% profit -> shift SL to Entry + 0.1% (Cost-to-Cost Risk Free)
+        "trail_trigger": 1.010,  # +1.0% profit -> trail SL closely
+        "trail_dist": 0.994,     # Keep SL 0.6% behind peak
         "tag": "SCALP"
     },
     "TREND": {
@@ -30,28 +31,30 @@ STRATEGY_PROFILES = {
         "max_bear_score": 25,
         "min_rvol": 1.3,
         "max_vwap_dist": 1.5,
-        "rr_ratio": 2.0,
-        "opt_sl": 0.85,      # -15% SL
-        "opt_tp": 1.30,      # +30% TP
-        "eq_sl": 0.993,      # -0.7% SL
-        "eq_tp": 1.015,      # +1.5% TP
-        "trail_trigger": 1.015,
-        "trail_dist": 0.985,
+        "rr_ratio": 1.6,         # 1:1.6 solid trend R:R
+        "opt_sl": 0.85,          # -15% SL
+        "opt_tp": 1.25,          # +25% TP
+        "eq_sl": 0.986,          # -1.4% SL (survives normal intraday volatility)
+        "eq_tp": 1.022,          # +2.2% TP
+        "breakeven_trigger": 0.007,  # +0.7% profit -> shift SL to Entry + 0.1% (Risk Free)
+        "trail_trigger": 1.014,  # +1.4% profit -> trail SL
+        "trail_dist": 0.990,     # Keep SL 1.0% behind peak
         "tag": "TREND"
     },
     "SNIPER": {
         "name": "🎯 Safe Sniper",
-        "min_score": 85,
-        "max_bear_score": 15,
-        "min_rvol": 1.5,      # Strict Institutional Volume Surge
-        "max_vwap_dist": 1.2, # Strict VWAP Pullback Zone (no chasing overbought tops)
-        "rr_ratio": 3.0,
-        "opt_sl": 0.88,      # -12% SL
-        "opt_tp": 1.35,      # +35% TP
-        "eq_sl": 0.995,      # -0.5% SL
-        "eq_tp": 1.018,      # +1.8% TP
-        "trail_trigger": 1.012,
-        "trail_dist": 0.990,
+        "min_score": 82,         # High conviction institutional pullback
+        "max_bear_score": 18,
+        "min_rvol": 1.4,         # Strict Institutional Volume Surge
+        "max_vwap_dist": 1.0,    # Strict Pullback Zone within 1.0% of VWAP (Cheap Entry)
+        "rr_ratio": 1.5,         # 1:1.5 high win-rate target (not 1:3 which fails in noise)
+        "opt_sl": 0.88,          # -12% SL
+        "opt_tp": 1.20,          # +20% TP
+        "eq_sl": 0.988,          # -1.2% SL (support below VWAP)
+        "eq_tp": 1.018,          # +1.8% TP
+        "breakeven_trigger": 0.006,  # +0.6% profit -> shift SL to Entry + 0.1% (Risk Free)
+        "trail_trigger": 1.012,  # +1.2% profit -> trail SL
+        "trail_dist": 0.992,
         "tag": "SNIPER"
     }
 }
@@ -535,7 +538,7 @@ class TradingEngine:
             "entry_price": pos["entry_price"],
             "exit_price": round(exit_price, 2),
             "pnl": round(pnl, 2),
-            "entry_time": pos["entry_time"],
+            "entry_time": pos.get("entry_time", datetime.now(IST).strftime("%H:%M:%S")),
             "exit_time": datetime.now(IST).strftime("%H:%M:%S"),
             "reason": reason,
             "style_tag": pos.get("style_tag", "TREND")
@@ -608,10 +611,20 @@ class TradingEngine:
             pos["pnl"] = round(pnl, 2)
             total_unrealized += pnl
 
-            # Dynamic Profile-based Trailing Stop-Loss
-            trail_trig = pos.get("trail_trigger", 1.015)
-            trail_dist = pos.get("trail_dist", 0.985)
+            # 1. Auto-Breakeven Shield (Zero Risk Lock-in when trade is in profit)
+            be_trig = pos.get("breakeven_trigger", 0.005)
             if pos["type"] == "BUY":
+                if not pos.get("breakeven_locked", False):
+                    if pos["current_price"] >= pos["entry_price"] * (1.0 + be_trig):
+                        cost_plus_sl = round(pos["entry_price"] * 1.001, 2)
+                        if cost_plus_sl > pos["sl"]:
+                            pos["sl"] = cost_plus_sl
+                            pos["breakeven_locked"] = True
+                            self.add_log(f"🛡️ AUTO-BREAKEVEN LOCKED for {pos['symbol']}: SL shifted to Cost (₹{cost_plus_sl:.2f}) [Zero-Risk Trade]")
+
+                # 2. Dynamic Profile-based Trailing Stop-Loss
+                trail_trig = pos.get("trail_trigger", 1.010)
+                trail_dist = pos.get("trail_dist", 0.990)
                 if pos["current_price"] >= pos["entry_price"] * trail_trig:
                     new_sl = round(pos["current_price"] * trail_dist, 2)
                     if new_sl > pos["sl"]:
@@ -619,13 +632,25 @@ class TradingEngine:
                         pos["trailing_active"] = True
 
                 if pos["current_price"] <= pos["sl"] or pnl <= -abs(pos.get("sl_amount", 1000.0)):
-                    self._close_position_internal(pos, reason=f"Stop-Loss Hit (-₹{abs(pnl):.0f})")
+                    exit_reason = f"Breakeven Cost-to-Cost (+₹{pnl:.2f})" if pos.get("breakeven_locked") and pnl >= -5.0 else f"Stop-Loss Hit (-₹{abs(pnl):.0f})"
+                    self._close_position_internal(pos, reason=exit_reason)
                     continue
 
                 if pos["current_price"] >= pos["target"] or pnl >= abs(pos.get("tp_amount", 2000.0)):
                     self._close_position_internal(pos, reason=f"Target Hit (+₹{pnl:.0f})")
                     continue
             else:
+                if not pos.get("breakeven_locked", False):
+                    if pos["current_price"] <= pos["entry_price"] * (1.0 - be_trig):
+                        cost_minus_sl = round(pos["entry_price"] * 0.999, 2)
+                        if cost_minus_sl < pos["sl"]:
+                            pos["sl"] = cost_minus_sl
+                            pos["breakeven_locked"] = True
+                            self.add_log(f"🛡️ AUTO-BREAKEVEN LOCKED for {pos['symbol']}: SL shifted to Cost (₹{cost_minus_sl:.2f}) [Zero-Risk Trade]")
+
+                # 2. Dynamic Profile-based Trailing Stop-Loss
+                trail_trig = pos.get("trail_trigger", 1.010)
+                trail_dist = pos.get("trail_dist", 0.990)
                 if pos["current_price"] <= pos["entry_price"] * (2 - trail_trig):
                     new_sl = round(pos["current_price"] * (2 - trail_dist), 2)
                     if new_sl < pos["sl"]:
@@ -633,7 +658,8 @@ class TradingEngine:
                         pos["trailing_active"] = True
 
                 if pos["current_price"] >= pos["sl"] or pnl <= -abs(pos.get("sl_amount", 1000.0)):
-                    self._close_position_internal(pos, reason=f"Stop-Loss Hit (-₹{abs(pnl):.0f})")
+                    exit_reason = f"Breakeven Cost-to-Cost (+₹{pnl:.2f})" if pos.get("breakeven_locked") and pnl >= -5.0 else f"Stop-Loss Hit (-₹{abs(pnl):.0f})"
+                    self._close_position_internal(pos, reason=exit_reason)
                     continue
 
                 if pos["current_price"] <= pos["target"] or pnl >= abs(pos.get("tp_amount", 2000.0)):
@@ -784,6 +810,8 @@ class TradingEngine:
                 "tp_amount": user_tp_amount,
                 "is_custom_sltp": is_custom,
                 "trailing_active": False,
+                "breakeven_locked": False,
+                "breakeven_trigger": profile.get("breakeven_trigger", 0.05),
                 "trail_trigger": profile["trail_trigger"],
                 "trail_dist": profile["trail_dist"],
                 "style_tag": profile["tag"],
@@ -796,8 +824,9 @@ class TradingEngine:
 
         elif data["type"] == "EQUITY" and self.enable_equities:
             entry_price = data["current_price"]
-            loss_per_share = max(0.5, entry_price * (1.0 - profile["eq_sl"]))
-            shares_allowed = max(5, int(user_sl_amount / loss_per_share))
+            loss_pct = max(0.008, 1.0 - profile.get("eq_sl", 0.988))
+            loss_per_share = max(0.5, entry_price * loss_pct)
+            shares_allowed = max(1, int(user_sl_amount / loss_per_share))
 
             if bias == "BULLISH":
                 side = "BUY"
@@ -826,6 +855,8 @@ class TradingEngine:
                 "tp_amount": user_tp_amount,
                 "is_custom_sltp": is_custom,
                 "trailing_active": False,
+                "breakeven_locked": False,
+                "breakeven_trigger": profile.get("breakeven_trigger", 0.005),
                 "trail_trigger": profile["trail_trigger"],
                 "trail_dist": profile["trail_dist"],
                 "style_tag": profile["tag"],

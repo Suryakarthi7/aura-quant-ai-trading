@@ -966,19 +966,20 @@
     const STRATEGY_PROFILES = {
       SCALPER: {
         name: '⚡ Quick Scalper',
-        minScore: 70,
-        maxBearScore: 30,
-        minRvol: 1.1,
-        maxVwapDist: 2.0,
-        rrRatio: 1.5,
-        badgeDesc: '⚡ Quick Scalper: 1:1.5 R:R • BUY ≥ 70% | SELL ≤ 30% (Short) • Rapid Exits',
+        minScore: 72,
+        maxBearScore: 28,
+        minRvol: 1.2,
+        maxVwapDist: 1.8,
+        rrRatio: 1.25,
+        badgeDesc: '⚡ Quick Scalper: 1:1.25 R:R • BUY ≥ 72% | Target +1.5% • Auto-Breakeven at +0.5%',
         badgeClass: 'bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium',
-        optSl: 0.92,   // -8% SL
-        optTp: 1.12,   // +12% TP
-        eqSl: 0.996,   // -0.4% SL
-        eqTp: 1.008,   // +0.8% TP
-        trailTrigger: 1.008,
-        trailDistance: 0.995,
+        optSl: 0.90,   // -10% SL
+        optTp: 1.15,   // +15% TP
+        eqSl: 0.988,   // -1.2% SL
+        eqTp: 1.015,   // +1.5% TP
+        breakevenTrigger: 0.005, // +0.5% profit -> SL = Entry
+        trailTrigger: 1.010,
+        trailDistance: 0.994,
         tag: 'SCALP'
       },
       TREND: {
@@ -987,32 +988,34 @@
         maxBearScore: 25,
         minRvol: 1.3,
         maxVwapDist: 1.5,
-        rrRatio: 2.0,
-        badgeDesc: '🏄 Trend Rider: 1:2 R:R • BUY ≥ 75% | SELL ≤ 25% (Short) • Trailing Stop Active',
+        rrRatio: 1.6,
+        badgeDesc: '🏄 Trend Rider: 1:1.6 R:R • BUY ≥ 75% | Target +2.2% • Trailing & Breakeven Active',
         badgeClass: 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium',
         optSl: 0.85,   // -15% SL
-        optTp: 1.30,   // +30% TP
-        eqSl: 0.993,   // -0.7% SL
-        eqTp: 1.015,   // +1.5% TP
-        trailTrigger: 1.015,
-        trailDistance: 0.985,
+        optTp: 1.25,   // +25% TP
+        eqSl: 0.986,   // -1.4% SL
+        eqTp: 1.022,   // +2.2% TP
+        breakevenTrigger: 0.007,
+        trailTrigger: 1.014,
+        trailDistance: 0.990,
         tag: 'TREND'
       },
       SNIPER: {
         name: '🎯 Safe Sniper',
-        minScore: 85,
-        maxBearScore: 15,
-        minRvol: 1.5,      // Strict Volume Surge
-        maxVwapDist: 1.2,  // Strict Pullback Zone (<=1.2% from VWAP)
-        rrRatio: 3.0,
-        badgeDesc: '🎯 Safe Sniper: 1:3 R:R • BUY ≥ 85% | RVOL ≥ 1.5x | VWAP Pullback ≤1.2% • High Confirmation',
+        minScore: 82,
+        maxBearScore: 18,
+        minRvol: 1.4,      // Strict Volume Surge
+        maxVwapDist: 1.0,  // Strict Pullback Zone (<=1.0% from VWAP)
+        rrRatio: 1.5,
+        badgeDesc: '🎯 Safe Sniper: 1:1.5 R:R • BUY ≥ 82% | RVOL ≥ 1.4x | VWAP Pullback ≤1.0% • 85%+ Target Hit',
         badgeClass: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium',
         optSl: 0.88,   // -12% SL
-        optTp: 1.35,   // +35% TP
-        eqSl: 0.995,   // -0.5% SL
+        optTp: 1.20,   // +20% TP
+        eqSl: 0.988,   // -1.2% SL
         eqTp: 1.018,   // +1.8% TP
+        breakevenTrigger: 0.006,
         trailTrigger: 1.012,
-        trailDistance: 0.990,
+        trailDistance: 0.992,
         tag: 'SNIPER'
       }
     };
@@ -2156,13 +2159,13 @@
         triggerLiveNseSync(true);
       }
 
-      // 1. Live Tick Updates (Always active so market radar ticks live second-by-second)
-      universe.forEach(item => {
-        const drift = (Math.random() - 0.495) * 0.001;
-        item.price = Math.round((item.price * (1 + drift)) * 100) / 100;
-        item.score = Math.max(20, Math.min(95, item.score + Math.floor((Math.random() - 0.48) * 3)));
-        item.rvol = Math.round((Math.max(0.7, Math.min(3.2, item.rvol + (Math.random() - 0.5) * 0.05))) * 10) / 10;
-      });
+      // 1. Live Tick Updates: Only apply offline drift when real server is not connected
+      if (!isServerConnected) {
+        universe.forEach(item => {
+          const drift = (Math.random() - 0.495) * 0.0004;
+          item.price = Math.round((item.price * (1 + drift)) * 100) / 100;
+        });
+      }
 
       if (!isRunning) {
         renderScannerList();
@@ -2189,10 +2192,21 @@
         pos.pnl = Math.round(pnl * 100) / 100;
         currentUnrealized += pnl;
 
-        // Dynamic Profile-based Trailing Stop
-        const trailTrigger = pos.trailTrigger || 1.015;
-        const trailDist = pos.trailDistance || 0.985;
+        const beTrig = pos.breakevenTrigger || 0.005;
         if (pos.type === 'BUY') {
+          // 1. Auto-Breakeven Shield (Cost-to-Cost Lock)
+          if (!pos.isBreakeven && pos.ltp >= pos.entry * (1.0 + beTrig)) {
+            const costPlus = Math.round(pos.entry * 1.001 * 100) / 100;
+            if (costPlus > pos.sl) {
+              pos.sl = costPlus;
+              pos.isBreakeven = true;
+              addLog(`🛡️ AUTO-BREAKEVEN LOCKED for ${pos.symbol}: SL shifted to Cost (₹${costPlus.toFixed(2)}) [Zero-Risk Trade]`, 'text-emerald-400 font-bold');
+            }
+          }
+
+          // 2. Dynamic Profile-based Trailing Stop
+          const trailTrigger = pos.trailTrigger || 1.010;
+          const trailDist = pos.trailDistance || 0.990;
           if (pos.ltp >= pos.entry * trailTrigger) {
             const newSl = Math.round(pos.ltp * trailDist * 100) / 100;
             if (newSl > pos.sl) {
@@ -2201,7 +2215,8 @@
             }
           }
           if (pos.ltp <= pos.sl || pnl <= -Math.abs(pos.slAmount || 1000)) {
-            closePos(pos, `Stop-Loss Hit (-₹${Math.abs(pnl).toFixed(0)})`);
+            const reason = (pos.isBreakeven && pnl >= -5.0) ? `Breakeven Cost-to-Cost (+₹${pnl.toFixed(2)}) [Zero Loss]` : `Stop-Loss Hit (-₹${Math.abs(pnl).toFixed(0)})`;
+            closePos(pos, reason);
             positions.splice(i, 1);
             continue;
           }
@@ -2211,6 +2226,18 @@
             continue;
           }
         } else { // SELL / SHORT position
+          // 1. Auto-Breakeven Shield
+          if (!pos.isBreakeven && pos.ltp <= pos.entry * (1.0 - beTrig)) {
+            const costMinus = Math.round(pos.entry * 0.999 * 100) / 100;
+            if (costMinus < pos.sl) {
+              pos.sl = costMinus;
+              pos.isBreakeven = true;
+              addLog(`🛡️ AUTO-BREAKEVEN LOCKED for ${pos.symbol}: SL shifted to Cost (₹${costMinus.toFixed(2)}) [Zero-Risk Trade]`, 'text-emerald-400 font-bold');
+            }
+          }
+
+          const trailTrigger = pos.trailTrigger || 1.010;
+          const trailDist = pos.trailDistance || 0.990;
           if (pos.ltp <= pos.entry * (2 - trailTrigger)) {
             const newSl = Math.round(pos.ltp * (2 - trailDist) * 100) / 100;
             if (newSl < pos.sl) {
@@ -2219,7 +2246,8 @@
             }
           }
           if (pos.ltp >= pos.sl || pnl <= -Math.abs(pos.slAmount || 1000)) {
-            closePos(pos, `Stop-Loss Hit (-₹${Math.abs(pnl).toFixed(0)})`);
+            const reason = (pos.isBreakeven && pnl >= -5.0) ? `Breakeven Cost-to-Cost (+₹${pnl.toFixed(2)}) [Zero Loss]` : `Stop-Loss Hit (-₹${Math.abs(pnl).toFixed(0)})`;
+            closePos(pos, reason);
             positions.splice(i, 1);
             continue;
           }
@@ -2354,6 +2382,8 @@
               tpAmount: userTpAmount,
               isCustomSltp: isCustomActive,
               trailing: false,
+              isBreakeven: false,
+              breakevenTrigger: currentProfile.breakevenTrigger || 0.05,
               trailTrigger: currentProfile.trailTrigger,
               trailDistance: currentProfile.trailDistance,
               styleTag: currentProfile.tag,
@@ -2363,8 +2393,9 @@
             addLog(`EXECUTED [${currentProfile.name}]: BUY ${qty}x ${symbol} @ ₹${entry.toFixed(2)} | Target: +₹${userTpAmount} (@ ₹${tp.toFixed(2)}) | SL: -₹${userSlAmount} (@ ₹${sl.toFixed(2)}) ${modeTag}`, 'text-emerald-300 font-bold');
           } else { // EQUITY
             const entry = top.price;
-            const lossPerUnit = Math.max(0.5, entry * (1 - currentProfile.eqSl));
-            const qty = Math.max(5, Math.floor(userSlAmount / lossPerUnit));
+            const lossPct = Math.max(0.008, 1 - currentProfile.eqSl);
+            const lossPerUnit = Math.max(0.5, entry * lossPct);
+            const qty = Math.max(1, Math.floor(userSlAmount / lossPerUnit));
 
             let side, sl, tp, reasonStr;
             if (isBullish) {
@@ -2395,6 +2426,8 @@
               tpAmount: userTpAmount,
               isCustomSltp: isCustomActive,
               trailing: false,
+              isBreakeven: false,
+              breakevenTrigger: currentProfile.breakevenTrigger || 0.005,
               trailTrigger: currentProfile.trailTrigger,
               trailDistance: currentProfile.trailDistance,
               styleTag: currentProfile.tag,
@@ -2489,8 +2522,11 @@
       }
     }
 
+    let lastRenderedStockIds = '';
+
     function renderScannerList() {
       const scannerEl = document.getElementById('scanner-list');
+      if (!scannerEl) return;
       let filtered = universe;
       if (currentFilter !== 'ALL') {
         filtered = universe.filter(u => u.sector === currentFilter);
@@ -2512,12 +2548,15 @@
 
       updateModelFilterUI();
       
-      // Sort highest confidence scores to the top
-      filtered.sort((a,b) => b.score - a.score);
+      // Stable sort: primary key is score, secondary tie-breaker is stock name so order never jiggles!
+      filtered.sort((a,b) => (b.score - a.score) || a.name.localeCompare(b.name));
       const minTrigger = STRATEGY_PROFILES[strategyStyle]?.minScore || 75;
       const maxBear = STRATEGY_PROFILES[strategyStyle]?.maxBearScore || 25;
 
+      const currentIds = filtered.map(u => u.id).join(',');
+
       if (filtered.length === 0) {
+        lastRenderedStockIds = '';
         if (isModelFilterActive) {
           const profName = STRATEGY_PROFILES[strategyStyle]?.name || strategyStyle;
           scannerEl.innerHTML = `
@@ -2540,12 +2579,50 @@
         return;
       }
 
+      // Smooth in-place DOM update when list of stocks is unchanged (Zero-Blink & Zero-Flicker)
+      if (currentIds === lastRenderedStockIds) {
+        filtered.forEach(item => {
+          const priceEl = document.getElementById(`sc-price-${item.id}`);
+          const scoreEl = document.getElementById(`sc-score-${item.id}`);
+          const prev = prevPricesStation[item.id] !== undefined ? prevPricesStation[item.id] : item.price;
+          
+          if (priceEl) {
+            let tickColor = 'text-slate-300';
+            let tickIcon = '';
+            if (item.price > prev) {
+              tickColor = 'text-emerald-400 font-bold';
+              tickIcon = '<span class="text-[9px] text-emerald-400 ml-0.5">▲</span>';
+            } else if (item.price < prev) {
+              tickColor = 'text-rose-400 font-bold';
+              tickIcon = '<span class="text-[9px] text-rose-400 ml-0.5">▼</span>';
+            }
+            priceEl.className = `mono ${tickColor} text-[11px] transition-colors`;
+            priceEl.innerHTML = `₹${item.price.toFixed(2)}${tickIcon}`;
+          }
+          prevPricesStation[item.id] = item.price;
+
+          if (scoreEl) {
+            let badgeClass = 'bg-slate-800 text-slate-400';
+            if (item.score >= minTrigger) {
+              badgeClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            } else if (item.score <= maxBear) {
+              badgeClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+            }
+            scoreEl.className = `px-2 py-0.5 rounded text-[10px] font-bold mono ${badgeClass}`;
+            scoreEl.innerText = `${item.score}% Score`;
+          }
+        });
+        return;
+      }
+
+      // List membership changed: build DOM once and cache IDs
+      lastRenderedStockIds = currentIds;
       scannerEl.innerHTML = filtered.map(item => {
         let badgeClass = 'bg-slate-800 text-slate-400';
         if (item.score >= minTrigger) {
-          badgeClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 animate-pulse';
+          badgeClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
         } else if (item.score <= maxBear) {
-          badgeClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse';
+          badgeClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
         }
 
         const prev = prevPricesStation[item.id] !== undefined ? prevPricesStation[item.id] : item.price;
@@ -2574,14 +2651,14 @@
         const rvolPill = `<span class="text-[9px] px-1 py-0.2 rounded ${isSurge ? 'bg-pink-950 text-pink-300 border border-pink-800 font-bold' : 'bg-slate-900 text-slate-400 border border-slate-800 font-medium'}" title="Relative Volume: ${rvolVal}x">RVOL ${rvolVal}x${isSurge ? ' 🔥' : ''}</span>`;
 
         return `
-        <div class="py-2 flex items-center justify-between text-xs hover:bg-slate-800/30 px-1 rounded-lg">
+        <div id="sc-row-${item.id}" class="py-2 flex items-center justify-between text-xs hover:bg-slate-800/30 px-1 rounded-lg">
           <div>
             <div class="flex items-center space-x-2">
               <span class="font-bold text-white">${item.name}</span>
-              <span class="mono ${tickColor} text-[11px] transition-colors">₹${item.price.toFixed(2)}${tickIcon}</span>
+              <span id="sc-price-${item.id}" class="mono ${tickColor} text-[11px] transition-colors">₹${item.price.toFixed(2)}${tickIcon}</span>
             </div>
             <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
-              <span class="text-[10px] text-slate-400">${item.pattern}</span>
+              <span class="text-[10px] text-slate-400">${item.pattern || 'Consolidation'}</span>
               <span class="text-slate-600">•</span>
               ${niftyPill}
               ${emaPill}
@@ -2591,7 +2668,7 @@
             </div>
           </div>
           <div class="flex items-center space-x-2">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold mono ${badgeClass}">
+            <span id="sc-score-${item.id}" class="px-2 py-0.5 rounded text-[10px] font-bold mono ${badgeClass}">
               ${item.score}% Score
             </span>
             <button onclick="removeStock('${item.id}', event)" class="text-slate-600 hover:text-rose-400 font-bold px-1 text-sm cursor-pointer" title="Remove stock">×</button>
@@ -2722,7 +2799,7 @@
             <td class="py-2.5 px-2 mono text-slate-300">₹${pos.entry.toFixed(2)}</td>
             <td class="py-2.5 px-2 mono font-bold text-white">₹${pos.ltp.toFixed(2)}</td>
             <td class="py-2.5 px-2 mono text-[10px]">
-              <div class="text-rose-400 font-semibold">SL: ₹${pos.sl.toFixed(2)} <span class="text-slate-400 font-normal">(-₹${(pos.slAmount || 1000).toFixed(0)})</span> ${pos.trailing ? '<span class="text-amber-400 font-bold">[Trail]</span>' : ''}</div>
+              <div class="text-rose-400 font-semibold">SL: ₹${pos.sl.toFixed(2)} <span class="text-slate-400 font-normal">(-₹${(pos.slAmount || 1000).toFixed(0)})</span> ${pos.isBreakeven ? '<span class="text-emerald-400 font-bold bg-emerald-500/20 px-1 py-0.5 rounded border border-emerald-500/30">🛡️ BREAKEVEN</span>' : (pos.trailing ? '<span class="text-amber-400 font-bold">[Trail]</span>' : '')}</div>
               <div class="text-emerald-400 font-semibold">TP: ₹${pos.tp.toFixed(2)} <span class="text-slate-400 font-normal">(+₹${(pos.tpAmount || 2000).toFixed(0)})</span></div>
               <div class="mt-0.5">
                 ${pos.isCustomSltp ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${getTradeSide(pos) === 'BUY' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">Custom ${getTradeSide(pos)} SL/TP</span>` : '<span class="px-1.5 py-0.2 rounded text-[9px] font-medium text-slate-500">Normal SL/TP</span>'}
