@@ -92,6 +92,10 @@ class TradingEngine:
         self.trade_history = []
         self.ai_logs = []
         
+        # 5-Minute Re-Entry Cooldown Shield (Prevents revenge trading, top-buying & zombie re-entries)
+        self.cooldown_duration = 300  # 300 seconds = 5 minutes
+        self.stock_cooldowns = {}     # { symbol/underlying: expiry_timestamp }
+        
         # Persistent custom SL / TP override for active & upcoming new stocks (BUY & SELL independent)
         self.custom_trade_sl = None
         self.custom_trade_tp = None
@@ -461,6 +465,7 @@ class TradingEngine:
             self.winning_trades = 0
             self.active_positions.clear()
             self.trade_history.clear()
+            self.stock_cooldowns.clear()
             self.custom_trade_sl = None
             self.custom_trade_tp = None
             self.custom_buy_sl = None
@@ -512,10 +517,14 @@ class TradingEngine:
 
     def close_single_position(self, position_id):
         with self.lock:
+            pos_to_close = None
             for pos in self.active_positions:
-                if pos["id"] == position_id:
-                    self._close_position_internal(pos, reason="Manual User Exit")
-                    return True, "Position closed."
+                if pos["id"] == position_id or pos["symbol"] == position_id or pos.get("underlying") == position_id:
+                    pos_to_close = pos
+                    break
+            if pos_to_close:
+                self._close_position_internal(pos_to_close, reason="Manual User Exit")
+                return True, f"Position {pos_to_close['symbol']} closed successfully."
             return False, "Position not found."
 
     def _close_position_internal(self, pos, reason="Square Off"):
@@ -546,9 +555,17 @@ class TradingEngine:
         self.trade_history.insert(0, trade_record)
         if pos in self.active_positions:
             self.active_positions.remove(pos)
+
+        # 5-Minute Re-Entry Cooldown Shield (Applies to ALL exits: Manual Exit, SL Hit, Target Hit)
+        underlying = pos.get("underlying") or pos.get("symbol", "").split()[0]
+        cooldown_expiry = time.time() + self.cooldown_duration
+        self.stock_cooldowns[underlying] = cooldown_expiry
+        self.stock_cooldowns[pos["symbol"]] = cooldown_expiry
+        cd_expiry_time = (datetime.now(IST) + timedelta(seconds=self.cooldown_duration)).strftime("%H:%M:%S")
             
         pnl_str = f"+₹{pnl:,.2f}" if pnl >= 0 else f"-₹{abs(pnl):,.2f}"
         self.add_log(f"CLOSED {pos['symbol']} @ ₹{exit_price:.2f} | P&L: {pnl_str} | Reason: {reason}")
+        self.add_log(f"⏳ 5-MIN COOLDOWN ACTIVE for {pos['symbol']}: Re-entry locked until {cd_expiry_time} IST (Anti-Chop Shield)")
 
     def _run_loop(self):
         while self.is_running:
@@ -689,6 +706,20 @@ class TradingEngine:
             key = data["id"]
             if any(p["underlying"] == key for p in self.active_positions):
                 continue
+
+            # 5-Minute Re-Entry Cooldown Shield (Prevents revenge trading, top-buying & zombie re-entry)
+            now_ts = time.time()
+            if key in self.stock_cooldowns:
+                if now_ts < self.stock_cooldowns[key]:
+                    continue
+                else:
+                    self.stock_cooldowns.pop(key, None)
+            sym = data.get("symbol", key)
+            if sym in self.stock_cooldowns:
+                if now_ts < self.stock_cooldowns[sym]:
+                    continue
+                else:
+                    self.stock_cooldowns.pop(sym, None)
                 
             if data["type"] == "INDEX" and not self.enable_options:
                 continue
@@ -881,10 +912,20 @@ class TradingEngine:
             tw_status, tw_msg = self._get_time_window_status()
             nifty_trend = real_feed.get_nifty_trend()
             
+            now_ts = time.time()
+            active_cooldowns = {}
+            for sym, exp in list(self.stock_cooldowns.items()):
+                remaining = int(exp - now_ts)
+                if remaining > 0:
+                    active_cooldowns[sym] = remaining
+                else:
+                    self.stock_cooldowns.pop(sym, None)
+
             return {
                 "is_running": self.is_running,
                 "mode": self.mode,
                 "feed_status": feed_status,
+                "cooldowns": active_cooldowns,
                 "initial_capital": self.initial_capital,
                 "current_capital": round(self.current_capital + self.unrealized_pnl, 2),
                 "daily_loss_limit": self.daily_loss_limit,
