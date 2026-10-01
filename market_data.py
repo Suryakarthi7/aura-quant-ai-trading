@@ -841,19 +841,20 @@ class RealMarketDataFeed:
         
         # Initialize default state with real NSE benchmark prices
         for key, meta in INSTRUMENT_MAP.items():
+            init_price = meta["default_price"]
             self.data_store[key] = {
                 "id": key,
                 "name": meta["name"],
                 "type": meta["type"],
                 "ticker": meta["ticker"],
-                "current_price": meta["default_price"],
-                "open": meta["default_price"],
-                "high": meta["default_price"],
-                "low": meta["default_price"],
-                "close": meta["default_price"],
-                "vwap": round(meta["default_price"] * 0.998, 2),
-                "ema9": round(meta["default_price"] * 0.999, 2),
-                "ema20": round(meta["default_price"] * 0.997, 2),
+                "current_price": init_price,
+                "open": init_price,
+                "high": init_price,
+                "low": init_price,
+                "close": init_price,
+                "vwap": round(init_price * 0.998, 2),
+                "ema9": round(init_price * 0.999, 2),
+                "ema20": round(init_price * 0.997, 2),
                 "ema_trend": "BULLISH",
                 "mtf_trend_15m": "BULLISH",
                 "nifty_trend": "BULLISH",
@@ -867,10 +868,65 @@ class RealMarketDataFeed:
                 "pattern": "Holding Above VWAP",
                 "score": 68,
                 "recommendation": "WAIT",
-                "last_candle_time": datetime.now(IST).strftime("%H:%M IST")
+                "last_candle_time": datetime.now(IST).strftime("%H:%M IST"),
+                "candles": self._generate_synthetic_candles(init_price, count=50)
             }
             
         self._started = False
+
+    def _generate_synthetic_candles(self, base_price, count=50):
+        candles = []
+        now = int(time.time())
+        now_5m = (now // 300) * 300
+        start_ts = now_5m - (count - 1) * 300
+        
+        p = max(1.0, float(base_price) * 0.992)
+        cum_pv = 0.0
+        cum_vol = 0
+        k9 = 2.0 / 10.0
+        k20 = 2.0 / 21.0
+        e9 = p
+        e20 = p
+        
+        for i in range(count):
+            ts = start_ts + i * 300
+            drift = (random.random() - 0.485) * 0.0028
+            op = p
+            cl = round(op * (1.0 + drift), 2)
+            hi = round(max(op, cl) + abs(random.random() * 0.0018 * op), 2)
+            lo = round(min(op, cl) - abs(random.random() * 0.0018 * op), 2)
+            vol = int(random.randint(4000, 32000))
+            
+            typical = (hi + lo + cl) / 3.0
+            cum_pv += typical * vol
+            cum_vol += vol
+            vwap = round(cum_pv / max(1, cum_vol), 2)
+            
+            e9 = round(cl * k9 + e9 * (1 - k9), 2)
+            e20 = round(cl * k20 + e20 * (1 - k20), 2)
+            
+            candles.append({
+                "time": ts,
+                "open": op,
+                "high": hi,
+                "low": lo,
+                "close": cl,
+                "volume": vol,
+                "vwap": vwap,
+                "ema9": e9,
+                "ema20": e20
+            })
+            p = cl
+            
+        if candles:
+            candles[-1]["close"] = round(base_price, 2)
+            candles[-1]["high"] = max(candles[-1]["high"], candles[-1]["close"])
+            candles[-1]["low"] = min(candles[-1]["low"], candles[-1]["close"])
+            candles[-1]["vwap"] = round(base_price * 0.998, 2)
+            candles[-1]["ema9"] = round(base_price * 0.999, 2)
+            candles[-1]["ema20"] = round(base_price * 0.997, 2)
+            
+        return candles
 
     def start(self):
         if not self._started:
@@ -981,6 +1037,35 @@ class RealMarketDataFeed:
                         data["recommendation"] = "STRONG SELL"
                     else:
                         data["recommendation"] = "WAIT"
+
+                    # Live Candlestick Real-Time Tick Update
+                    if "candles" in data and data["candles"]:
+                        last_c = data["candles"][-1]
+                        now_ts = int(time.time())
+                        now_5m = (now_ts // 300) * 300
+                        if now_5m > last_c["time"]:
+                            data["candles"].append({
+                                "time": now_5m,
+                                "open": new_price,
+                                "high": new_price,
+                                "low": new_price,
+                                "close": new_price,
+                                "volume": int(random.randint(1000, 5000)),
+                                "vwap": data["vwap"],
+                                "ema9": data["ema9"],
+                                "ema20": data["ema20"]
+                            })
+                            if len(data["candles"]) > 80:
+                                data["candles"].pop(0)
+                        else:
+                            if new_price > last_c["high"]:
+                                last_c["high"] = new_price
+                            if new_price < last_c["low"]:
+                                last_c["low"] = new_price
+                            last_c["close"] = new_price
+                            last_c["vwap"] = data["vwap"]
+                            last_c["ema9"] = data["ema9"]
+                            last_c["ema20"] = data["ema20"]
 
                 # Update NIFTY Alignment for all tickers
                 nifty_trend = self.data_store.get("NIFTY", {}).get("trend", "BULLISH")
@@ -1269,6 +1354,118 @@ class RealMarketDataFeed:
             "recommendation": rec,
             "last_candle_time": str(df.index[-1].strftime("%H:%M IST"))
         })
+
+        # Parse recent 5m candles with rolling VWAP and EMA ribbon
+        try:
+            df_clean = df.dropna()
+            if len(df_clean) >= 5:
+                s_ema9 = df_clean["Close"].ewm(span=9, adjust=False).mean()
+                s_ema20 = df_clean["Close"].ewm(span=20, adjust=False).mean()
+                if "Volume" in df_clean and df_clean["Volume"].sum() > 0:
+                    tp_series = (df_clean["High"] + df_clean["Low"] + df_clean["Close"]) / 3.0
+                    cum_pv = (tp_series * df_clean["Volume"]).cumsum()
+                    cum_v = df_clean["Volume"].cumsum()
+                    s_vwap = cum_pv / cum_v.replace(0, np.nan)
+                else:
+                    s_vwap = df_clean["Close"]
+
+                parsed_candles = []
+                for idx, row in df_clean.tail(60).iterrows():
+                    ts = int(idx.timestamp()) if hasattr(idx, 'timestamp') else int(time.time())
+                    parsed_candles.append({
+                        "time": ts,
+                        "open": round(float(row["Open"]), 2),
+                        "high": round(float(row["High"]), 2),
+                        "low": round(float(row["Low"]), 2),
+                        "close": round(float(row["Close"]), 2),
+                        "volume": int(row["Volume"]) if "Volume" in row and not np.isnan(row["Volume"]) else 100,
+                        "vwap": round(float(s_vwap.loc[idx]), 2) if idx in s_vwap and not np.isnan(s_vwap.loc[idx]) else round(float(row["Close"]), 2),
+                        "ema9": round(float(s_ema9.loc[idx]), 2) if idx in s_ema9 and not np.isnan(s_ema9.loc[idx]) else round(float(row["Close"]), 2),
+                        "ema20": round(float(s_ema20.loc[idx]), 2) if idx in s_ema20 and not np.isnan(s_ema20.loc[idx]) else round(float(row["Close"]), 2),
+                    })
+                if parsed_candles:
+                    self.data_store[key]["candles"] = parsed_candles
+        except Exception:
+            pass
+
+    def get_symbol_candles(self, key):
+        if not self._started:
+            self.start()
+        
+        # Clean symbol key (e.g. "PAYTM MIS" -> "PAYTM", "BANKNIFTY 54500 CE" -> "BANKNIFTY")
+        clean_key = str(key).strip().upper()
+        if " " in clean_key:
+            parts = clean_key.split()
+            clean_key = parts[0]
+            
+        with self.lock:
+            data = self.data_store.get(clean_key)
+            if not data:
+                # Try finding in INSTRUMENT_MAP or by prefix
+                for k in self.data_store.keys():
+                    if k in clean_key or clean_key in k:
+                        data = self.data_store[k]
+                        clean_key = k
+                        break
+            
+            if not data:
+                meta = INSTRUMENT_MAP.get(clean_key, {
+                    "name": clean_key,
+                    "default_price": 1000.0,
+                    "ticker": f"{clean_key}.NS",
+                    "type": "EQUITY"
+                })
+                candles = self._generate_synthetic_candles(meta["default_price"], count=50)
+                return {
+                    "success": True,
+                    "symbol": key,
+                    "underlying": clean_key,
+                    "name": meta.get("name", clean_key),
+                    "current_price": meta["default_price"],
+                    "vwap": round(meta["default_price"] * 0.998, 2),
+                    "ema9": round(meta["default_price"] * 0.999, 2),
+                    "ema20": round(meta["default_price"] * 0.997, 2),
+                    "trend": "BULLISH",
+                    "score": 68,
+                    "pattern": "Holding Above VWAP",
+                    "rvol": 1.2,
+                    "rsi": 54.0,
+                    "vwap_dist_pct": 0.2,
+                    "vwap_safe": True,
+                    "rvol_safe": False,
+                    "mtf_trend_15m": "BULLISH",
+                    "candles": candles
+                }
+            
+            candles = data.get("candles")
+            if not candles:
+                candles = self._generate_synthetic_candles(data["current_price"], count=50)
+                data["candles"] = candles
+                
+            return {
+                "success": True,
+                "symbol": key,
+                "underlying": clean_key,
+                "name": data.get("name", clean_key),
+                "current_price": data.get("current_price"),
+                "open": data.get("open"),
+                "high": data.get("high"),
+                "low": data.get("low"),
+                "close": data.get("close"),
+                "vwap": data.get("vwap"),
+                "ema9": data.get("ema9"),
+                "ema20": data.get("ema20"),
+                "trend": data.get("trend"),
+                "score": data.get("score"),
+                "pattern": data.get("pattern"),
+                "rvol": data.get("rvol"),
+                "rsi": data.get("rsi"),
+                "vwap_dist_pct": data.get("vwap_dist_pct", 0.0),
+                "vwap_safe": data.get("vwap_safe", True),
+                "rvol_safe": data.get("rvol_safe", False),
+                "mtf_trend_15m": data.get("mtf_trend_15m", "BULLISH"),
+                "candles": list(candles)
+            }
 
     def get_nifty_trend(self):
         if not self._started:

@@ -20,7 +20,7 @@ except ImportError:
 PORT = 5000
 
 if USE_FLASK:
-    app = Flask(__name__, template_folder="templates")
+    app = Flask(__name__, template_folder="templates", static_folder="static")
     CORS(app)
 
     @app.route("/hybridaction/<path:subpath>", methods=["GET", "POST"])
@@ -102,6 +102,24 @@ if USE_FLASK:
             "scanner": scanner_data,
             "feed_status": feed_status
         })
+
+    @app.route("/api/candles/<path:symbol>", methods=["GET"])
+    @app.route("/api/candles", methods=["GET"])
+    def get_candles(symbol=None):
+        if not symbol:
+            symbol = request.args.get("symbol", "NIFTY")
+        from market_data import real_feed
+        candle_data = real_feed.get_symbol_candles(symbol)
+        
+        # Match with any active position
+        matched_pos = None
+        for p in engine.active_positions:
+            if p.get("id") == symbol or p.get("symbol") == symbol or p.get("underlying") == candle_data.get("underlying"):
+                matched_pos = p
+                break
+        
+        candle_data["position"] = matched_pos
+        return jsonify(candle_data)
 
     @app.route("/api/close_position", methods=["POST"])
     def close_position():
@@ -232,6 +250,37 @@ else:
                     "scanner": real_feed.get_all_data(),
                     "feed_status": real_feed.get_feed_status()
                 })
+            elif clean_path.startswith("/static/"):
+                rel_path = clean_path.lstrip("/").replace("/", os.sep)
+                file_path = os.path.join(os.path.dirname(__file__), rel_path)
+                if os.path.exists(file_path) and os.path.isfile(file_path):
+                    content_type = "application/javascript" if file_path.endswith(".js") else ("text/css" if file_path.endswith(".css") else "application/octet-stream")
+                    with open(file_path, "rb") as f:
+                        content = f.read()
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Length", str(len(content)))
+                    self.end_headers()
+                    self.wfile.write(content)
+                else:
+                    self.send_error(404, "File Not Found")
+            elif clean_path.startswith("/api/candles"):
+                symbol = "NIFTY"
+                if clean_path.startswith("/api/candles/"):
+                    symbol = urllib.parse.unquote(clean_path[len("/api/candles/"):])
+                else:
+                    query_params = urllib.parse.parse_qs(parsed.query)
+                    if "symbol" in query_params:
+                        symbol = query_params["symbol"][0]
+                from market_data import real_feed
+                candle_data = real_feed.get_symbol_candles(symbol)
+                matched_pos = None
+                for p in engine.active_positions:
+                    if p.get("id") == symbol or p.get("symbol") == symbol or p.get("underlying") == candle_data.get("underlying"):
+                        matched_pos = p
+                        break
+                candle_data["position"] = matched_pos
+                self._send_json(candle_data)
             elif clean_path == "/api/matches":
                 self._send_json({"success": True, "matches": []})
             else:
