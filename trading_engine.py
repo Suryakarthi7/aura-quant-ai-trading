@@ -123,12 +123,32 @@ class TradingEngine:
         self.max_daily_trades = 10
         self.brokerage_per_trade = 20.0  # ₹20 per trade
 
+        # ==============================================================
+        # MANUAL PRO TRADER DESK (INDEPENDENT VIRTUAL DESK)
+        # ==============================================================
+        self.manual_initial_capital = 10000.0
+        self.manual_current_capital = 10000.0
+        self.manual_daily_loss_limit = 2000.0
+        self.manual_risk_per_trade_pct = 1.0
+        self.manual_max_daily_trades = 10
+        self.manual_brokerage_per_trade = 20.0
+        self.manual_realized_pnl = 0.0
+        self.manual_unrealized_pnl = 0.0
+        self.manual_total_trades = 0
+        self.manual_winning_trades = 0
+        self.manual_active_positions = []
+        self.manual_trade_history = []
+        self.manual_logs = []
+
         # Load persisted settings if available
         self._load_settings()
         
         risk_amt = self.get_normal_sl_amount()
         normal_tp = self.get_normal_tp_amount()
         self.add_log(f"System ready: REAL NSE Market Data Feed connected. Capital: ₹{self.initial_capital:,.2f} | Loss Limit: ₹{self.daily_loss_limit:,.2f} | Risk: {self.risk_per_trade_pct}% (Normal SL: -₹{risk_amt:,.0f} | Normal TP: +₹{normal_tp:,.0f})")
+
+        # Continuous background position monitoring loop (Ensures manual & AI positions update in real-time)
+        threading.Thread(target=self._continuous_monitor_loop, daemon=True).start()
 
     def _load_settings(self):
         settings_file = os.path.join(os.path.dirname(__file__), "user_settings.json")
@@ -173,6 +193,18 @@ class TradingEngine:
                     self.max_vwap_dist_pct = float(data["max_vwap_dist_pct"])
                 if "min_rvol_threshold" in data:
                     self.min_rvol_threshold = float(data["min_rvol_threshold"])
+                # Manual Desk Settings persistence
+                if "manual_initial_capital" in data and float(data["manual_initial_capital"]) > 0:
+                    self.manual_initial_capital = float(data["manual_initial_capital"])
+                    self.manual_current_capital = self.manual_initial_capital
+                if "manual_daily_loss_limit" in data and float(data["manual_daily_loss_limit"]) > 0:
+                    self.manual_daily_loss_limit = float(data["manual_daily_loss_limit"])
+                if "manual_risk_per_trade_pct" in data and float(data["manual_risk_per_trade_pct"]) > 0:
+                    self.manual_risk_per_trade_pct = float(data["manual_risk_per_trade_pct"])
+                if "manual_max_daily_trades" in data and int(data["manual_max_daily_trades"]) >= 0:
+                    self.manual_max_daily_trades = int(data["manual_max_daily_trades"])
+                if "manual_brokerage_per_trade" in data and float(data["manual_brokerage_per_trade"]) >= 0:
+                    self.manual_brokerage_per_trade = float(data["manual_brokerage_per_trade"])
             except Exception:
                 pass
 
@@ -198,6 +230,11 @@ class TradingEngine:
                 "rvol_filter_active": self.rvol_filter_active,
                 "max_vwap_dist_pct": self.max_vwap_dist_pct,
                 "min_rvol_threshold": self.min_rvol_threshold,
+                "manual_initial_capital": self.manual_initial_capital,
+                "manual_daily_loss_limit": self.manual_daily_loss_limit,
+                "manual_risk_per_trade_pct": self.manual_risk_per_trade_pct,
+                "manual_max_daily_trades": self.manual_max_daily_trades,
+                "manual_brokerage_per_trade": self.manual_brokerage_per_trade,
             }
             with open(settings_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
@@ -527,6 +564,254 @@ class TradingEngine:
                 return True, f"Position {pos_to_close['symbol']} closed successfully."
             return False, "Position not found."
 
+    # ==============================================================
+    # MANUAL PRO TRADER DESK METHODS
+    # ==============================================================
+    def execute_manual_order(self, symbol, side="BUY", qty=None, entry_price=None, sl_price=None, tp_price=None, sl_amount=None, tp_amount=None, reason="Manual Trade"):
+        with self.lock:
+            clean_underlying = symbol.replace(" MIS", "").split()[0].upper()
+            sym_data = real_feed.get_symbol_data(clean_underlying)
+            
+            spot = sym_data["current_price"] if sym_data else (float(entry_price) if entry_price else 100.0)
+            entry = float(entry_price) if entry_price and float(entry_price) > 0 else spot
+            
+            risk_amt = float(sl_amount) if sl_amount and float(sl_amount) > 0 else ((self.manual_initial_capital * self.manual_risk_per_trade_pct) / 100.0)
+            target_amt = float(tp_amount) if tp_amount and float(tp_amount) > 0 else (risk_amt * 1.6)
+
+            if not qty or int(qty) <= 0:
+                loss_per_share = max(0.5, entry * 0.012)
+                shares = max(1, int(risk_amt / loss_per_share))
+            else:
+                shares = int(qty)
+
+            side_upper = "SELL" if str(side).upper() == "SELL" else "BUY"
+            
+            if sl_price and float(sl_price) > 0:
+                final_sl = round(float(sl_price), 2)
+            else:
+                final_sl = max(0.5, round(entry - (risk_amt / shares), 2)) if side_upper == "BUY" else round(entry + (risk_amt / shares), 2)
+                
+            if tp_price and float(tp_price) > 0:
+                final_tp = round(float(tp_price), 2)
+            else:
+                final_tp = round(entry + (target_amt / shares), 2) if side_upper == "BUY" else max(0.5, round(entry - (target_amt / shares), 2))
+
+            pos = {
+                "id": f"MAN_{int(time.time()*1000)%100000}",
+                "symbol": f"{clean_underlying} MIS",
+                "underlying": clean_underlying,
+                "instrument": "EQUITY",
+                "type": side_upper,
+                "qty": shares,
+                "base_price": entry,
+                "entry_price": entry,
+                "current_price": entry,
+                "sl": final_sl,
+                "target": final_tp,
+                "sl_amount": risk_amt,
+                "tp_amount": target_amt,
+                "is_custom_sltp": True,
+                "trailing_active": False,
+                "breakeven_locked": False,
+                "breakeven_trigger": 0.005,
+                "trail_trigger": 1.010,
+                "trail_dist": 0.990,
+                "style_tag": "MANUAL",
+                "pnl": 0.0,
+                "entry_time": datetime.now(IST).strftime("%H:%M:%S"),
+                "reason": reason
+            }
+            self.manual_active_positions.append(pos)
+            self.add_manual_log(f"MANUAL ORDER: {side_upper} {shares}x {pos['symbol']} @ ₹{entry:.2f} | SL: ₹{final_sl:.2f} | Target: ₹{final_tp:.2f} | {reason}")
+            return True, f"Manual {side_upper} order executed for {pos['symbol']}", pos
+
+    def close_single_manual_position(self, position_id, reason="Manual User Exit"):
+        with self.lock:
+            pos_to_close = None
+            for pos in self.manual_active_positions:
+                if pos["id"] == position_id or pos["symbol"] == position_id or pos.get("underlying") == position_id:
+                    pos_to_close = pos
+                    break
+            if pos_to_close:
+                self._close_manual_position_internal(pos_to_close, reason=reason)
+                return True, f"Manual Position {pos_to_close['symbol']} closed successfully."
+            return False, "Position not found."
+
+    def _close_manual_position_internal(self, pos, reason="Manual Exit"):
+        exit_price = pos["current_price"]
+        pnl = (exit_price - pos["entry_price"]) * pos["qty"] if pos["type"] == "BUY" else (pos["entry_price"] - exit_price) * pos["qty"]
+        
+        self.manual_realized_pnl += pnl
+        self.manual_total_trades += 1
+        if pnl > 0:
+            self.manual_winning_trades += 1
+        total_brokerage = self.manual_total_trades * self.manual_brokerage_per_trade
+        self.manual_current_capital = max(0.0, round(self.manual_initial_capital + self.manual_realized_pnl - total_brokerage, 2))
+        
+        trade_record = {
+            "id": pos["id"],
+            "symbol": pos["symbol"],
+            "underlying": pos["underlying"],
+            "instrument": pos.get("instrument", "EQUITY"),
+            "type": pos["type"],
+            "qty": pos["qty"],
+            "entry_price": pos["entry_price"],
+            "exit_price": round(exit_price, 2),
+            "pnl": round(pnl, 2),
+            "entry_time": pos.get("entry_time", datetime.now(IST).strftime("%H:%M:%S")),
+            "exit_time": datetime.now(IST).strftime("%H:%M:%S"),
+            "reason": reason,
+            "style_tag": "MANUAL"
+        }
+        self.manual_trade_history.insert(0, trade_record)
+        if pos in self.manual_active_positions:
+            self.manual_active_positions.remove(pos)
+            
+        pnl_str = f"+₹{pnl:,.2f}" if pnl >= 0 else f"-₹{abs(pnl):,.2f}"
+        self.add_manual_log(f"MANUAL CLOSED {pos['symbol']} @ ₹{exit_price:.2f} | P&L: {pnl_str} | Reason: {reason}")
+
+    def reset_manual_account(self):
+        with self.lock:
+            self.manual_current_capital = self.manual_initial_capital
+            self.manual_realized_pnl = 0.0
+            self.manual_unrealized_pnl = 0.0
+            self.manual_total_trades = 0
+            self.manual_winning_trades = 0
+            self.manual_active_positions.clear()
+            self.manual_trade_history.clear()
+            self.add_manual_log("Manual Trading Desk account reset to default balance.")
+
+    def update_manual_position_sltp(self, position_id, sl_amount=None, tp_amount=None):
+        with self.lock:
+            for pos in self.manual_active_positions:
+                if pos["id"] == position_id:
+                    qty = pos["qty"]
+                    entry = pos["entry_price"]
+                    if sl_amount is not None and float(sl_amount) > 0:
+                        pos["sl_amount"] = float(sl_amount)
+                        pos["sl"] = max(0.5, round(entry - (pos["sl_amount"] / qty), 2)) if pos["type"] == "BUY" else round(entry + (pos["sl_amount"] / qty), 2)
+                    if tp_amount is not None and float(tp_amount) > 0:
+                        pos["tp_amount"] = float(tp_amount)
+                        pos["target"] = round(entry + (pos["tp_amount"] / qty), 2) if pos["type"] == "BUY" else max(0.5, round(entry - (pos["tp_amount"] / qty), 2))
+                    self.add_manual_log(f"UPDATED SL/TP for Manual {pos['symbol']}: SL=₹{pos['sl']:.2f} | TP=₹{pos['target']:.2f}")
+                    return True, f"SL/TP updated for {pos['symbol']}."
+            return False, "Position not found."
+
+    def update_all_manual_positions_sltp(self, side, sl_amount=None, tp_amount=None):
+        with self.lock:
+            side_upper = str(side).upper()
+            count = 0
+            for pos in self.manual_active_positions:
+                if pos.get("type") == side_upper:
+                    qty = pos["qty"]
+                    entry = pos["entry_price"]
+                    if sl_amount is not None and float(sl_amount) > 0:
+                        pos["sl_amount"] = float(sl_amount)
+                        pos["sl"] = max(0.5, round(entry - (pos["sl_amount"] / qty), 2)) if pos["type"] == "BUY" else round(entry + (pos["sl_amount"] / qty), 2)
+                    if tp_amount is not None and float(tp_amount) > 0:
+                        pos["tp_amount"] = float(tp_amount)
+                        pos["target"] = round(entry + (pos["tp_amount"] / qty), 2) if pos["type"] == "BUY" else max(0.5, round(entry - (pos["tp_amount"] / qty), 2))
+                    pos["is_custom_sltp"] = True
+                    count += 1
+            self.add_manual_log(f"BULK UPDATED {count} Manual {side_upper} positions: SL=₹{sl_amount or '--'} | TP=₹{tp_amount or '--'}")
+            return True, f"Bulk updated {count} manual {side_upper} positions."
+
+    def update_manual_settings(self, initial_capital=None, daily_loss_limit=None, risk_per_trade_pct=None, max_daily_trades=None, brokerage_per_trade=None):
+        with self.lock:
+            if initial_capital is not None and float(initial_capital) > 0:
+                diff = float(initial_capital) - self.manual_initial_capital
+                self.manual_initial_capital = float(initial_capital)
+                self.manual_current_capital = max(0.0, self.manual_current_capital + diff)
+            if daily_loss_limit is not None and float(daily_loss_limit) > 0:
+                self.manual_daily_loss_limit = float(daily_loss_limit)
+            if risk_per_trade_pct is not None and 0.1 <= float(risk_per_trade_pct) <= 10.0:
+                self.manual_risk_per_trade_pct = float(risk_per_trade_pct)
+            if max_daily_trades is not None and int(max_daily_trades) >= 0:
+                self.manual_max_daily_trades = int(max_daily_trades)
+            if brokerage_per_trade is not None and float(brokerage_per_trade) >= 0:
+                self.manual_brokerage_per_trade = float(brokerage_per_trade)
+            self.add_manual_log(f"Manual Desk Settings: Capital=₹{self.manual_initial_capital:,.2f}, Loss Limit=₹{self.manual_daily_loss_limit:,.2f}, Risk={self.manual_risk_per_trade_pct}%")
+            self._save_settings()
+
+    def add_manual_log(self, message):
+        timestamp = datetime.now(IST).strftime("%H:%M:%S")
+        entry = {"time": timestamp, "message": message}
+        self.manual_logs.insert(0, entry)
+        if len(self.manual_logs) > 60:
+            self.manual_logs.pop()
+
+    def _manage_manual_positions(self):
+        total_unrealized = 0.0
+        for pos in list(self.manual_active_positions):
+            underlying_key = pos["underlying"]
+            underlying_data = real_feed.get_symbol_data(underlying_key)
+            if underlying_data:
+                pos["current_price"] = round(underlying_data["current_price"], 2)
+            
+            if pos["type"] == "BUY":
+                pnl = (pos["current_price"] - pos["entry_price"]) * pos["qty"]
+            else:
+                pnl = (pos["entry_price"] - pos["current_price"]) * pos["qty"]
+                
+            pos["pnl"] = round(pnl, 2)
+            total_unrealized += pnl
+
+            # Auto-Breakeven Shield
+            be_trig = pos.get("breakeven_trigger", 0.005)
+            if pos["type"] == "BUY":
+                if not pos.get("breakeven_locked", False):
+                    if pos["current_price"] >= pos["entry_price"] * (1.0 + be_trig):
+                        cost_plus_sl = round(pos["entry_price"] * 1.001, 2)
+                        if cost_plus_sl > pos["sl"]:
+                            pos["sl"] = cost_plus_sl
+                            pos["breakeven_locked"] = True
+                            self.add_manual_log(f"🛡️ AUTO-BREAKEVEN LOCKED for {pos['symbol']}: SL shifted to Cost (₹{cost_plus_sl:.2f})")
+
+                # Trailing SL
+                trail_trig = pos.get("trail_trigger", 1.010)
+                trail_dist = pos.get("trail_dist", 0.990)
+                if pos["current_price"] >= pos["entry_price"] * trail_trig:
+                    new_sl = round(pos["current_price"] * trail_dist, 2)
+                    if new_sl > pos["sl"]:
+                        pos["sl"] = new_sl
+                        pos["trailing_active"] = True
+
+                if pos["current_price"] <= pos["sl"] or pnl <= -abs(pos.get("sl_amount", 1000.0)):
+                    exit_reason = f"Breakeven Cost-to-Cost (+₹{pnl:.2f})" if pos.get("breakeven_locked") and pnl >= -5.0 else f"Stop-Loss Hit (-₹{abs(pnl):.0f})"
+                    self._close_manual_position_internal(pos, reason=exit_reason)
+                    continue
+
+                if pos["current_price"] >= pos["target"] or pnl >= abs(pos.get("tp_amount", 2000.0)):
+                    self._close_manual_position_internal(pos, reason=f"Target Hit (+₹{pnl:.0f})")
+                    continue
+            else:
+                if not pos.get("breakeven_locked", False):
+                    if pos["current_price"] <= pos["entry_price"] * (1.0 - be_trig):
+                        cost_minus_sl = round(pos["entry_price"] * 0.999, 2)
+                        if cost_minus_sl < pos["sl"]:
+                            pos["sl"] = cost_minus_sl
+                            pos["breakeven_locked"] = True
+                            self.add_manual_log(f"🛡️ AUTO-BREAKEVEN LOCKED for {pos['symbol']}: SL shifted to Cost (₹{cost_minus_sl:.2f})")
+
+                trail_trig = pos.get("trail_trigger", 1.010)
+                trail_dist = pos.get("trail_dist", 0.990)
+                if pos["current_price"] <= pos["entry_price"] * (2 - trail_trig):
+                    new_sl = round(pos["current_price"] * (2 - trail_dist), 2)
+                    if new_sl < pos["sl"]:
+                        pos["sl"] = new_sl
+                        pos["trailing_active"] = True
+
+                if pos["current_price"] >= pos["sl"] or pnl <= -abs(pos.get("sl_amount", 1000.0)):
+                    exit_reason = f"Breakeven Cost-to-Cost (+₹{pnl:.2f})" if pos.get("breakeven_locked") and pnl >= -5.0 else f"Stop-Loss Hit (-₹{abs(pnl):.0f})"
+                    self._close_manual_position_internal(pos, reason=exit_reason)
+                    continue
+
+                if pos["current_price"] <= pos["target"] or pnl >= abs(pos.get("tp_amount", 2000.0)):
+                    self._close_manual_position_internal(pos, reason=f"Target Hit (+₹{pnl:.0f})")
+                    continue
+
+        self.manual_unrealized_pnl = round(total_unrealized, 2)
+
     def _close_position_internal(self, pos, reason="Square Off"):
         exit_price = pos["current_price"]
         pnl = (exit_price - pos["entry_price"]) * pos["qty"] if pos["type"] == "BUY" else (pos["entry_price"] - exit_price) * pos["qty"]
@@ -567,6 +852,18 @@ class TradingEngine:
         self.add_log(f"CLOSED {pos['symbol']} @ ₹{exit_price:.2f} | P&L: {pnl_str} | Reason: {reason}")
         self.add_log(f"⏳ 5-MIN COOLDOWN ACTIVE for {pos['symbol']}: Re-entry locked until {cd_expiry_time} IST (Anti-Chop Shield)")
 
+    def _continuous_monitor_loop(self):
+        while True:
+            try:
+                with self.lock:
+                    if self.manual_active_positions:
+                        self._manage_manual_positions()
+                    if not self.is_running and self.active_positions:
+                        self._manage_active_positions()
+            except Exception:
+                pass
+            time.sleep(1.0)
+
     def _run_loop(self):
         while self.is_running:
             try:
@@ -579,6 +876,7 @@ class TradingEngine:
     def _cycle_step(self):
         # 1. Update positions with REAL quotes from real_feed
         self._manage_active_positions()
+        self._manage_manual_positions()
 
         # 2. Check Daily Loss Limit (Kill Switch)
         total_pnl = self.realized_pnl + self.unrealized_pnl
@@ -900,6 +1198,7 @@ class TradingEngine:
 
     def get_state(self):
         with self.lock:
+            self._manage_manual_positions()
             total_pnl = round(self.realized_pnl + self.unrealized_pnl, 2)
             loss_used_pct = round(min(100.0, (abs(min(0.0, total_pnl)) / self.daily_loss_limit) * 100.0), 1)
             win_rate = round((self.winning_trades / self.total_trades * 100.0), 1) if self.total_trades > 0 else 0.0
@@ -920,6 +1219,12 @@ class TradingEngine:
                     active_cooldowns[sym] = remaining
                 else:
                     self.stock_cooldowns.pop(sym, None)
+
+            manual_tot_pnl = round(self.manual_realized_pnl + self.manual_unrealized_pnl, 2)
+            manual_loss_used = round(min(100.0, (abs(min(0.0, manual_tot_pnl)) / max(1.0, self.manual_daily_loss_limit)) * 100.0), 1) if self.manual_daily_loss_limit > 0 else 0.0
+            manual_win_rate = round((self.manual_winning_trades / self.manual_total_trades * 100.0), 1) if self.manual_total_trades > 0 else 0.0
+            manual_brokerage = round(self.manual_total_trades * self.manual_brokerage_per_trade, 2)
+            manual_net_pnl = round(manual_tot_pnl - manual_brokerage, 2)
 
             return {
                 "is_running": self.is_running,
@@ -982,7 +1287,27 @@ class TradingEngine:
                 "ai_logs": list(self.ai_logs[:30]),
                 "scanner": real_feed.get_all_data(),
                 "enable_options": self.enable_options,
-                "enable_equities": self.enable_equities
+                "enable_equities": self.enable_equities,
+                "manual_desk": {
+                    "initial_capital": self.manual_initial_capital,
+                    "current_capital": round(self.manual_current_capital + self.manual_unrealized_pnl, 2),
+                    "daily_loss_limit": self.manual_daily_loss_limit,
+                    "risk_per_trade_pct": self.manual_risk_per_trade_pct,
+                    "max_daily_trades": self.manual_max_daily_trades,
+                    "brokerage_per_trade": self.manual_brokerage_per_trade,
+                    "total_brokerage": manual_brokerage,
+                    "gross_pnl": manual_tot_pnl,
+                    "net_pnl": manual_net_pnl,
+                    "realized_pnl": round(self.manual_realized_pnl, 2),
+                    "unrealized_pnl": round(self.manual_unrealized_pnl, 2),
+                    "loss_used_pct": manual_loss_used,
+                    "total_trades": self.manual_total_trades,
+                    "winning_trades": self.manual_winning_trades,
+                    "win_rate": manual_win_rate,
+                    "active_positions": list(self.manual_active_positions),
+                    "trade_history": list(self.manual_trade_history[:20]),
+                    "logs": list(self.manual_logs[:30])
+                }
             }
 
 engine = TradingEngine()

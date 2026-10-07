@@ -1,10 +1,10 @@
 {
-  "initial_capital": 50000.0,
-  "daily_loss_limit": 5000.0,
+  "initial_capital": 10000.0,
+  "daily_loss_limit": 2000.0,
   "risk_per_trade_pct": 1.0,
-  "strategy_style": "SCALPER",
+  "strategy_style": "TREND",
   "trade_direction": "BOTH",
-  "max_daily_trades": 50,
+  "max_daily_trades": 10,
   "brokerage_per_trade": 20.0,
   "price_filter_active": false,
   "price_filter_condition": "HIGHER",
@@ -16,5 +16,10 @@
   "vwap_pullback_filter_active": true,
   "rvol_filter_active": true,
   "max_vwap_dist_pct": 1.2,
-  "min_rvol_threshold": 1.5
+  "min_rvol_threshold": 1.5,
+  "manual_initial_capital": 10000.0,
+  "manual_daily_loss_limit": 1000.0,
+  "manual_risk_per_trade_pct": 1.0,
+  "manual_max_daily_trades": 10,
+  "manual_brokerage_per_trade": 20.0
 }

@@ -73,6 +73,21 @@
       </div>
     </header>
 
+    <!-- Dual Station Switcher Anchor Bar -->
+    <div class="flex flex-wrap items-center justify-between bg-slate-900/80 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs shadow-md gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-200 font-bold">Dual Trading Stations Active:</span>
+        <span class="text-slate-400 hidden sm:inline">1. Autonomous AI Bot (Top) • 2. Manual Pro Trader Desk (Bottom)</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="text-[11px] text-slate-400">Trade Climax Reversals?</span>
+        <a href="#manual-desk-section" class="px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md flex items-center space-x-1.5 cursor-pointer">
+          <span>⚡ Jump to Manual Desk ↓</span>
+        </a>
+      </div>
+    </div>
+
     <!-- Kill Switch Alert Banner -->
     <div id="kill-banner" class="hidden bg-rose-950/80 border-2 border-rose-500 rounded-2xl p-4 text-white flex items-center justify-between shadow-xl">
       <div class="flex items-center space-x-3">
@@ -537,6 +552,363 @@
 
     </div>
 
+    <!-- ============================================================== -->
+    <!-- MANUAL PRO TRADER STATION (EXACT FULL DUPLICATE DESK)          -->
+    <!-- ============================================================== -->
+    <div id="manual-desk-section" class="pt-8 border-t-2 border-indigo-500/40 space-y-5">
+      
+      <!-- Manual Top Header Bar -->
+      <header class="bg-gradient-to-r from-slate-900 via-indigo-950/50 to-slate-900 border border-indigo-500/50 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-2xl ring-1 ring-indigo-500/20">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/50 flex items-center justify-center text-purple-400 font-bold text-xl shadow-inner">
+            ⚡
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="text-base font-bold text-white tracking-tight">MANUAL PRO TRADER DESK</h2>
+              <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">INDEPENDENT VIRTUAL DESK</span>
+              <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse mr-1"></span>CLIMAX FADE / REVERSE CONSOLE
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">Take Opposite Climax Reversal Trades or Discretionary Setups with Independent Virtual Capital</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <a href="#" class="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center space-x-1 cursor-pointer">
+            <span>↑ Jump to AI Bot</span>
+          </a>
+          <button onclick="resetManualAccount()" class="px-3.5 py-1.5 bg-slate-950 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/50 text-slate-300 hover:text-rose-300 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95">
+            <span>🔄 Reset Manual Desk</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Manual KPI Metric Cards (Duplicated) -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Virtual Capital -->
+        <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl p-4 shadow-sm">
+          <div class="text-xs text-slate-400 font-medium">Manual Virtual Capital</div>
+          <div class="mt-1 text-2xl font-bold mono text-white" id="manual-card-capital">₹10,000.00</div>
+          <div class="text-[11px] text-slate-500 mt-1">Starting: <span class="mono" id="manual-card-init-capital">₹10,000</span></div>
+        </div>
+
+        <!-- Net P&L -->
+        <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl p-4 shadow-sm">
+          <div class="flex justify-between items-center text-xs text-slate-400 font-medium">
+            <span>Today's Net P&L (After Charges)</span>
+            <span id="manual-card-brokerage-tag" class="text-[10px] mono text-amber-400 font-semibold">Charges: -₹0</span>
+          </div>
+          <div class="mt-1 text-2xl font-bold mono text-emerald-400" id="manual-card-pnl">+₹0.00</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+            <span>Gross: <b class="mono text-slate-300" id="manual-card-gross-pnl">₹0.00</b></span>
+            <span>•</span>
+            <span>Charges: <b class="mono text-rose-400" id="manual-card-brokerage-total">-₹0.00</b></span>
+            <span>•</span>
+            <span>Live: <b class="mono" id="manual-card-unrealized">₹0.00</b></span>
+          </div>
+        </div>
+
+        <!-- Daily Loss Limit -->
+        <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl p-4 shadow-sm">
+          <div class="flex justify-between items-center text-xs text-slate-400 font-medium">
+            <span>Manual Loss Limit Budget</span>
+            <span class="mono" id="manual-card-limit-val">Max: ₹2,000</span>
+          </div>
+          <div class="mt-1 flex items-baseline justify-between">
+            <div class="text-xl font-bold mono text-slate-200" id="manual-card-loss-pct">0.0% Used</div>
+            <span class="text-[11px] text-slate-400 mono" id="manual-card-loss-rem">₹2,000 left</span>
+          </div>
+          <div class="w-full bg-slate-950 h-2 rounded-full mt-2 overflow-hidden border border-slate-800">
+            <div id="manual-loss-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Win Rate & Trades -->
+        <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl p-4 shadow-sm">
+          <div class="flex justify-between items-center text-xs text-slate-400 font-medium">
+            <span>Win Rate & Trade Cap</span>
+            <span id="manual-card-trade-cap-pill" class="text-[10px] px-1.5 py-0.5 rounded font-bold mono bg-slate-800 text-slate-300">0/10 Trades</span>
+          </div>
+          <div class="mt-1 text-2xl font-bold mono text-purple-400" id="manual-card-winrate">0.0%</div>
+          <div class="text-[11px] text-slate-400 mt-1 flex justify-between items-center">
+            <div><span id="manual-card-wins">0</span> wins / <span id="manual-card-losses">0</span> losses</div>
+            <span class="text-[10px] font-semibold text-purple-400">Manual Desk</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Manual Capital & Risk Settings Row -->
+      <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+          <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">Manual Desk Capital & Risk Settings</div>
+          <span class="text-[10px] text-indigo-400 font-semibold mono">Dedicated ₹10,000 Starting Allocation</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Manual Capital (₹)</label>
+            <input type="number" id="manual-input-capital" value="10000" step="1000" min="500" oninput="onManualCapitalInput()"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Daily Loss Limit (₹)</label>
+            <input type="number" id="manual-input-loss-limit" value="2000" step="100" min="100"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-rose-500">
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs text-slate-400">Risk Per Trade (%)</label>
+              <span class="text-[10px] text-indigo-400 font-bold mono">%</span>
+            </div>
+            <div class="relative">
+              <input type="number" id="manual-input-risk-pct" value="1.0" step="0.5" min="0.1" max="10.0" oninput="onManualRiskPctInput()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-indigo-500">
+              <span class="absolute right-3 top-2.5 text-xs text-slate-500 mono">%</span>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs text-slate-400">Risk Amount (₹)</label>
+              <span id="manual-risk-calc-badge" class="text-[10px] text-emerald-400 font-bold mono">= ₹100</span>
+            </div>
+            <div class="relative">
+              <span class="absolute left-2.5 top-2 text-xs text-emerald-400 font-bold mono">₹</span>
+              <input type="number" id="manual-input-risk-amount" value="100" step="10" min="10" oninput="onManualRiskAmtInput()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-6 pr-3 py-2 text-sm mono text-white focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Max Daily Trades</label>
+            <input type="number" id="manual-input-max-trades" value="10" min="1" max="50"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-amber-500">
+          </div>
+          <div class="flex space-x-2">
+            <button type="button" id="btn-manual-save-settings" onclick="saveManualSettings()" class="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-md flex items-center justify-center space-x-1.5 active:scale-95">
+              <span id="manual-save-settings-icon">💾</span>
+              <span id="manual-save-settings-text">Save Settings</span>
+            </button>
+            <button type="button" onclick="resetManualAccount()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer">
+              Reset
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Smart Manual Order Execution Console & 1-Click Reverse AI Fader -->
+      <section class="bg-gradient-to-b from-slate-900 to-slate-950 border border-indigo-500/40 rounded-2xl p-4 space-y-4 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
+          <div class="flex items-center space-x-2">
+            <span class="text-sm font-bold text-white uppercase tracking-wider flex items-center space-x-1.5">
+              <span>⚡</span>
+              <span>Smart Manual Order Console</span>
+            </span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold mono">1-Click Fast Execute</span>
+          </div>
+          <div class="text-xs text-slate-400 flex items-center space-x-2">
+            <span>Manual Buying Power: <b class="text-emerald-400 mono" id="manual-console-avail-cap">₹10,000</b></span>
+          </div>
+        </div>
+
+        <!-- 1-Click Quick Load From AI Active Positions Toolbar -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-300 font-semibold flex items-center space-x-1.5">
+              <span>🤖 Quick Load from AI Open Positions:</span>
+            </span>
+            <span class="text-[11px] text-slate-500">Click any stock to auto-populate ticket</span>
+          </div>
+          <div id="ai-quickload-chips" class="flex flex-wrap gap-2 pt-1">
+            <span class="text-xs text-slate-500 italic py-1">No AI positions currently open. You can still enter any stock symbol manually below!</span>
+          </div>
+        </div>
+
+        <!-- Order Ticket Input Form -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          <!-- Stock Symbol with Live Price Lookup -->
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Stock Symbol</label>
+            <div class="relative">
+              <input type="text" id="manual-order-symbol" placeholder="e.g. BHEL, CANBK" oninput="onManualSymbolInput()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white uppercase focus:outline-none focus:border-indigo-500">
+              <span id="manual-symbol-ltp" class="absolute right-2.5 top-2.5 text-[10px] mono text-emerald-400 font-bold hidden">₹--</span>
+            </div>
+          </div>
+
+          <!-- Action Side: BUY / SELL -->
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Order Side</label>
+            <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-700 text-xs font-bold">
+              <button type="button" id="manual-side-buy-btn" onclick="setManualOrderSide('BUY')"
+                class="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white transition cursor-pointer shadow-sm">
+                🟢 BUY (Long)
+              </button>
+              <button type="button" id="manual-side-sell-btn" onclick="setManualOrderSide('SELL')"
+                class="flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
+                🔴 SELL (Short)
+              </button>
+            </div>
+          </div>
+
+          <!-- Quantity -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs text-slate-400">Quantity (Shares)</label>
+              <button type="button" onclick="autoCalcManualQty()" class="text-[10px] text-indigo-400 hover:underline cursor-pointer">Auto-Calc</button>
+            </div>
+            <input type="number" id="manual-order-qty" value="10" min="1" step="1"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm mono text-white focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <!-- Stop Loss Amount (₹) -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs text-slate-400">Stop Loss (₹ Amt)</label>
+              <span class="text-[10px] text-rose-400 mono font-bold">Max Loss</span>
+            </div>
+            <div class="relative">
+              <span class="absolute left-2.5 top-2 text-xs text-rose-400 mono font-bold">₹</span>
+              <input type="number" id="manual-order-sl-amt" value="100" min="10" step="10" oninput="updateManualSltpPreview()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-6 pr-3 py-2 text-sm mono text-white focus:outline-none focus:border-rose-500">
+            </div>
+          </div>
+
+          <!-- Target Profit Amount (₹) -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs text-slate-400">Target (₹ Amt)</label>
+              <span id="manual-order-rr-badge" class="text-[10px] text-emerald-400 mono font-bold">1:2 R:R</span>
+            </div>
+            <div class="relative">
+              <span class="absolute left-2.5 top-2 text-xs text-emerald-400 mono font-bold">₹</span>
+              <input type="number" id="manual-order-tp-amt" value="200" min="10" step="10" oninput="updateManualSltpPreview()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-6 pr-3 py-2 text-sm mono text-white focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+
+          <!-- Execute Button -->
+          <div>
+            <button type="button" id="btn-manual-execute" onclick="executeManualTradeOrder()"
+              class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95">
+              <span>🚀 EXECUTE ORDER</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Reverse / Opposite AI Advice Banner -->
+        <div class="p-3 bg-indigo-950/40 rounded-xl border border-indigo-500/30 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center space-x-2">
+            <span class="text-base">💡</span>
+            <span class="text-slate-300"><b>Pro Climax Fading Tip:</b> When the AI bot enters at the top of a rally (BUY), click <b>[🔴 Flip to SELL]</b> to take the instant mean-reversion pullback for quick profit!</span>
+          </div>
+          <button type="button" onclick="flipManualSide()" class="px-3 py-1 bg-purple-600/30 hover:bg-purple-600/60 border border-purple-500/50 rounded-lg text-purple-300 hover:text-white font-bold mono text-xs transition cursor-pointer">
+            🔁 Flip Side (BUY ⇄ SELL)
+          </button>
+        </div>
+      </section>
+
+      <!-- Two Columns: Manual Positions & History + Manual Terminal Logs -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- Left: Manual Active Positions & History -->
+        <div class="lg:col-span-7 space-y-5">
+          <!-- Manual Active Positions Table -->
+          <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl overflow-hidden shadow-lg">
+            <div class="p-3.5 bg-slate-800/50 border-b border-slate-800 flex justify-between items-center flex-wrap gap-2">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-white uppercase tracking-wider">Manual Active Positions</span>
+                <span id="manual-pos-badge" class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold mono">0</span>
+              </div>
+              <div class="flex items-center space-x-2 flex-wrap gap-y-1.5">
+                <button onclick="openManualBulkEditSlTpModal('BUY')" class="px-2.5 py-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 hover:text-white border border-emerald-500/50 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm" title="Edit SL/TP for all manual BUY positions">
+                  <span>🟢 Edit BUY SL/TP</span>
+                </button>
+                <button onclick="openManualBulkEditSlTpModal('SELL')" class="px-2.5 py-1 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 hover:text-white border border-rose-500/50 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm" title="Edit SL/TP for all manual SELL positions">
+                  <span>🔴 Edit SELL SL/TP</span>
+                </button>
+                <span class="text-[11px] text-slate-400">Live 1s P&L Tracking • Trailing SL Active</span>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-950 text-slate-400 mono text-[11px] border-b border-slate-800">
+                  <tr>
+                    <th class="py-2.5 px-3">Symbol</th>
+                    <th class="py-2.5 px-2">Type</th>
+                    <th class="py-2.5 px-2">Qty</th>
+                    <th class="py-2.5 px-2">Entry</th>
+                    <th class="py-2.5 px-2">LTP</th>
+                    <th class="py-2.5 px-2">SL / TP</th>
+                    <th class="py-2.5 px-2">P&L</th>
+                    <th class="py-2.5 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="manual-pos-tbody" class="divide-y divide-slate-800/60 font-medium">
+                  <tr><td colspan="8" class="text-center py-8 text-slate-500">No manual positions open. Use the console above to place your first trade.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Manual Completed Trades History -->
+          <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl overflow-hidden shadow-lg">
+            <div class="p-3.5 bg-slate-800/50 border-b border-slate-800 text-xs font-bold text-white uppercase tracking-wider flex justify-between items-center">
+              <span>Manual Completed Trades</span>
+              <span class="text-[11px] text-slate-400 mono" id="manual-hist-count">0 Closed</span>
+            </div>
+            <div class="overflow-x-auto max-h-56">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-950 text-slate-400 mono text-[11px] border-b border-slate-800">
+                  <tr>
+                    <th class="py-2 px-3">Symbol</th>
+                    <th class="py-2 px-2">Side</th>
+                    <th class="py-2 px-2">Qty</th>
+                    <th class="py-2 px-2">Entry</th>
+                    <th class="py-2 px-2">Exit</th>
+                    <th class="py-2 px-2">P&L</th>
+                    <th class="py-2 px-3">Exit Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="manual-hist-tbody" class="divide-y divide-slate-800/60">
+                  <tr><td colspan="7" class="text-center py-6 text-slate-500">No manual closed trades yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Manual Trade Terminal Logs & Fast Inversion Guide -->
+        <div class="lg:col-span-5 space-y-5">
+          <!-- Manual Terminal Logs -->
+          <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl overflow-hidden shadow-lg">
+            <div class="p-3.5 bg-slate-950 border-b border-slate-800 text-xs font-bold text-slate-300 uppercase tracking-wider flex justify-between">
+              <span>Manual Desk Terminal</span>
+              <span class="text-[11px] mono text-purple-400">Audit Trail</span>
+            </div>
+            <div id="manual-terminal-logs" class="p-3.5 mono text-[11px] h-60 overflow-y-auto space-y-1.5 bg-black text-slate-300">
+              <div class="text-slate-500">[Manual Desk Ready] ₹10,000 Virtual Capital allocated. Ready for execution.</div>
+            </div>
+          </div>
+
+          <!-- Strategy Cheat Sheet Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 text-xs">
+            <div class="text-xs font-bold text-amber-400 flex items-center space-x-1.5 uppercase tracking-wide">
+              <span>⚡ Mean-Reversion / Fade Strategy Guide</span>
+            </div>
+            <div class="text-slate-300 space-y-1.5 text-[11px] leading-relaxed">
+              <p>• <b>AI Buys High (Climax):</b> When momentum indicators hit 80%+ at upper resistance, the move is often exhausted. Taking <b>SELL</b> catches the pullback.</p>
+              <p>• <b>AI Sells Low (Capitulation):</b> When breakdown indicators trigger at the day low, sellers are usually trapped. Taking <b>BUY</b> catches the bounce.</p>
+              <p>• <b>Strict 1:2 R:R:</b> Always keep SL tight (₹100) and Target double (₹200). Even with 45% win rate, your virtual equity grows steadily!</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
   <!-- Live Active Stock Candlestick & Trade Signals Chart Modal -->
   <div id="modal-live-chart" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4">
     <div class="bg-slate-900 border border-slate-700/90 rounded-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
@@ -649,7 +1021,7 @@
 
       <!-- Main Chart Area -->
       <div class="relative flex-1 bg-slate-950 p-2 min-h-[380px] sm:min-h-[440px]">
-        <div id="live-chart-container" class="w-full h-full min-h-[380px] sm:min-h-[440px]"></div>
+        <div id="live-chart-container" class="w-full h-full min-h-[380px] sm:min-h-[440px]" style="min-height: 440px; width: 100%;"></div>
         <canvas id="live-chart-canvas-fallback" class="hidden absolute inset-0 w-full h-full"></canvas>
       </div>
 
@@ -937,6 +1309,24 @@
     let currentFilter = 'ALL';
     let isModelFilterActive = false; // Filter radar by active Strategy Model qualification
     let editingPosition = null;
+
+    // ==============================================================
+    // MANUAL PRO TRADER DESK STATE & CONTROLS
+    // ==============================================================
+    let manualPositions = [];
+    let manualHistory = [];
+    let manualInitialCapital = 10000;
+    let manualCurrentCapital = 10000;
+    let manualDailyLossLimit = 2000;
+    let manualRiskPerTradePct = 1.0;
+    let manualMaxDailyTrades = 10;
+    let manualBrokeragePerTrade = 20;
+    let manualRealizedPnl = 0;
+    let manualUnrealizedPnl = 0;
+    let manualTotalTrades = 0;
+    let manualWinningTrades = 0;
+    let manualOrderSide = 'BUY';
+    let hasLoadedManualServerSettings = false;
 
     // Price Filter for Market Radar & Active Stock Selection (Default OFF: all amounts included)
     let isPriceFilterActive = false;
@@ -1835,18 +2225,39 @@
     }
 
     function openEditSlTpModal(posId) {
-      const pos = positions.find(p => p.id === posId);
+      let pos = positions.find(p => p.id === posId || p.symbol === posId);
+      let isManual = false;
+      if (!pos) {
+        pos = manualPositions.find(p => p.id === posId || p.symbol === posId);
+        isManual = true;
+      }
       if (!pos) return;
-      editingPosition = pos;
+
+      const entryPrice = Number(pos.entry ?? pos.entry_price ?? pos.basePrice ?? pos.base_price ?? 0);
+      const ltpPrice = Number(pos.ltp ?? pos.current_price ?? entryPrice);
+      const slAmt = Number(pos.slAmount ?? pos.sl_amount ?? 100);
+      const tpAmt = Number(pos.tpAmount ?? pos.tp_amount ?? 200);
+
+      editingPosition = Object.assign({}, pos, {
+        entry: entryPrice,
+        entry_price: entryPrice,
+        ltp: ltpPrice,
+        current_price: ltpPrice,
+        slAmount: slAmt,
+        sl_amount: slAmt,
+        tpAmount: tpAmt,
+        tp_amount: tpAmt,
+        isManual: isManual
+      });
 
       document.getElementById('edit-pos-id').value = pos.id;
       document.getElementById('edit-pos-symbol').innerText = pos.symbol;
       document.getElementById('edit-pos-qty').innerText = pos.qty;
-      document.getElementById('edit-pos-entry').innerText = `₹${pos.entry.toFixed(2)}`;
-      document.getElementById('edit-pos-ltp').innerText = `₹${pos.ltp.toFixed(2)}`;
+      document.getElementById('edit-pos-entry').innerText = `₹${entryPrice.toFixed(2)}`;
+      document.getElementById('edit-pos-ltp').innerText = `₹${ltpPrice.toFixed(2)}`;
       
-      document.getElementById('edit-pos-sl-amount').value = Math.round(pos.slAmount || 1000);
-      document.getElementById('edit-pos-tp-amount').value = Math.round(pos.tpAmount || 2000);
+      document.getElementById('edit-pos-sl-amount').value = Math.round(slAmt);
+      document.getElementById('edit-pos-tp-amount').value = Math.round(tpAmt);
       
       onEditModalInput();
       document.getElementById('modal-edit-sltp').classList.remove('hidden');
@@ -1863,7 +2274,7 @@
       const slAmount = parseFloat(document.getElementById('edit-pos-sl-amount').value) || 1;
       const tpAmount = parseFloat(document.getElementById('edit-pos-tp-amount').value) || 1;
       const qty = pos.qty || 1;
-      const entry = pos.entry || 0;
+      const entry = pos.entry || pos.entry_price || 0;
 
       const slPrice = Math.max(0.5, pos.type === 'BUY' ? entry - (slAmount / qty) : entry + (slAmount / qty));
       const tpPrice = pos.type === 'BUY' ? entry + (tpAmount / qty) : Math.max(0.5, entry - (tpAmount / qty));
@@ -1892,6 +2303,51 @@
         return;
       }
 
+      if (editingPosition.isManual) {
+        if (isServerConnected) {
+          fetch('/api/manual_update_sltp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              position_id: editingPosition.id,
+              sl_amount: slAmount,
+              tp_amount: tpAmount
+            })
+          }).then(r => r.json()).then(data => {
+            if (data && data.success && typeof fetchState === 'function') {
+              fetchState();
+            }
+          }).catch(err => console.error("Error updating manual SL/TP:", err));
+        }
+
+        const targetPos = manualPositions.find(p => p.id === editingPosition.id);
+        if (targetPos) {
+          targetPos.sl_amount = slAmount;
+          targetPos.slAmount = slAmount;
+          targetPos.tp_amount = tpAmount;
+          targetPos.tpAmount = tpAmount;
+          const qty = targetPos.qty || 1;
+          const entry = targetPos.entry || targetPos.entry_price || 0;
+          targetPos.sl = Math.max(0.5, targetPos.type === 'BUY' ? entry - (slAmount / qty) : entry + (slAmount / qty));
+          targetPos.target = targetPos.type === 'BUY' ? entry + (tpAmount / qty) : Math.max(0.5, entry - (tpAmount / qty));
+          targetPos.tp = targetPos.target;
+        }
+
+        addManualLog(`UPDATED SL/TP for ${editingPosition.symbol}: SL=-₹${slAmount.toLocaleString()} | TP=+₹${tpAmount.toLocaleString()}`, 'text-purple-300 font-bold');
+        closeEditSlTpModal();
+        renderManualDeskUI({
+          active_positions: manualPositions,
+          trade_history: manualHistory,
+          current_capital: manualCapital,
+          initial_capital: manualInitialCapital,
+          daily_loss_limit: manualDailyLossLimit,
+          risk_per_trade_pct: manualRiskPerTradePct,
+          is_connected: isManualConnected,
+          logs: manualLogs
+        });
+        return;
+      }
+
       editingPosition.slAmount = slAmount;
       editingPosition.tpAmount = tpAmount;
       const qty = editingPosition.qty;
@@ -1907,6 +2363,47 @@
 
     function resetPositionToNormal() {
       if (!editingPosition) return;
+      if (editingPosition.isManual) {
+        const normalSl = Math.round((manualInitialCapital * manualRiskPerTradePct) / 100);
+        const normalTp = Math.round(normalSl * 2.0);
+        if (isServerConnected) {
+          fetch('/api/manual_update_sltp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              position_id: editingPosition.id,
+              sl_amount: normalSl,
+              tp_amount: normalTp
+            })
+          }).catch(err => console.error(err));
+        }
+        const targetPos = manualPositions.find(p => p.id === editingPosition.id);
+        if (targetPos) {
+          targetPos.sl_amount = normalSl;
+          targetPos.slAmount = normalSl;
+          targetPos.tp_amount = normalTp;
+          targetPos.tpAmount = normalTp;
+          const qty = targetPos.qty || 1;
+          const entry = targetPos.entry || targetPos.entry_price || 0;
+          targetPos.sl = Math.max(0.5, targetPos.type === 'BUY' ? entry - (normalSl / qty) : entry + (normalSl / qty));
+          targetPos.target = targetPos.type === 'BUY' ? entry + (normalTp / qty) : Math.max(0.5, entry - (normalTp / qty));
+          targetPos.tp = targetPos.target;
+        }
+        addManualLog(`RESET SL/TP to NORMAL for ${editingPosition.symbol}: SL=-₹${normalSl.toLocaleString()} | TP=+₹${normalTp.toLocaleString()}`, 'text-blue-300');
+        closeEditSlTpModal();
+        renderManualDeskUI({
+          active_positions: manualPositions,
+          trade_history: manualHistory,
+          current_capital: manualCapital,
+          initial_capital: manualInitialCapital,
+          daily_loss_limit: manualDailyLossLimit,
+          risk_per_trade_pct: manualRiskPerTradePct,
+          is_connected: isManualConnected,
+          logs: manualLogs
+        });
+        return;
+      }
+
       const normalSl = Math.round((initialCapital * riskPerTradePct) / 100);
       const rr = STRATEGY_PROFILES[strategyStyle]?.rrRatio || 2.0;
       const normalTp = Math.round(normalSl * rr);
@@ -1924,7 +2421,17 @@
       updateUI();
     }
 
+    let currentBulkScope = 'AI'; // 'AI' or 'MANUAL'
+
     function openBulkEditSlTpModal(side = 'BUY') {
+      currentBulkScope = 'AI';
+      currentBulkSide = (side === 'SELL') ? 'SELL' : 'BUY';
+      switchBulkModalSide(currentBulkSide);
+      document.getElementById('modal-bulk-edit-sltp').classList.remove('hidden');
+    }
+
+    function openManualBulkEditSlTpModal(side = 'BUY') {
+      currentBulkScope = 'MANUAL';
       currentBulkSide = (side === 'SELL') ? 'SELL' : 'BUY';
       switchBulkModalSide(currentBulkSide);
       document.getElementById('modal-bulk-edit-sltp').classList.remove('hidden');
@@ -1937,6 +2444,8 @@
     function switchBulkModalSide(side) {
       currentBulkSide = (side === 'SELL') ? 'SELL' : 'BUY';
       const isBuy = currentBulkSide === 'BUY';
+      const isManual = currentBulkScope === 'MANUAL';
+      const scopeLabel = isManual ? 'Manual' : 'AI';
 
       // Update tabs style
       const tabBuy = document.getElementById('bulk-tab-BUY');
@@ -1951,44 +2460,53 @@
 
       // Header & labels
       document.getElementById('bulk-modal-icon').innerText = isBuy ? '🟢' : '🔴';
-      document.getElementById('bulk-modal-title').innerText = isBuy ? 'Edit SL & Target for BUY Positions (Long / CE)' : 'Edit SL & Target for SELL Positions (Short / PE)';
-      document.getElementById('bulk-label-sl').innerText = isBuy ? 'Stop Loss (₹ Amount Per BUY Position)' : 'Stop Loss (₹ Amount Per SELL Position)';
-      document.getElementById('bulk-label-tp').innerText = isBuy ? 'Target Profit (₹ Amount Per BUY Position)' : 'Target Profit (₹ Amount Per SELL Position)';
+      document.getElementById('bulk-modal-title').innerText = isBuy 
+        ? `Edit SL & Target for ${scopeLabel} BUY Positions` 
+        : `Edit SL & Target for ${scopeLabel} SELL Positions`;
+      document.getElementById('bulk-label-sl').innerText = isBuy 
+        ? `Stop Loss (₹ Amount Per ${scopeLabel} BUY Position)` 
+        : `Stop Loss (₹ Amount Per ${scopeLabel} SELL Position)`;
+      document.getElementById('bulk-label-tp').innerText = isBuy 
+        ? `Target Profit (₹ Amount Per ${scopeLabel} BUY Position)` 
+        : `Target Profit (₹ Amount Per ${scopeLabel} SELL Position)`;
 
       const saveBtn = document.getElementById('bulk-btn-save');
-      saveBtn.innerText = isBuy ? 'Update BUY Stocks' : 'Update SELL Stocks';
-      saveBtn.className = isBuy ? 'px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer' : 'px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer';
+      saveBtn.innerText = isBuy ? `Update ${scopeLabel} BUY Stocks` : `Update ${scopeLabel} SELL Stocks`;
+      saveBtn.className = isBuy 
+        ? 'px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer' 
+        : 'px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer';
 
-      document.getElementById('bulk-btn-reset').innerText = isBuy ? 'Reset BUY to Normal' : 'Reset SELL to Normal';
+      document.getElementById('bulk-btn-reset').innerText = isBuy ? `Reset ${scopeLabel} BUY to Normal` : `Reset ${scopeLabel} SELL to Normal`;
       document.getElementById('bulk-edit-disclaimer').innerText = isBuy 
-        ? '* Immediately updates all active BUY stocks, and permanently applies to all newly entered BUY stocks.' 
-        : '* Immediately updates all active SELL stocks, and permanently applies to all newly entered SELL stocks.';
+        ? `* Immediately updates all active ${scopeLabel} BUY stocks.` 
+        : `* Immediately updates all active ${scopeLabel} SELL stocks.`;
 
-      // Filter active positions matching current side
-      const matchingPos = positions.filter(p => getTradeSide(p) === currentBulkSide);
+      // Filter active positions matching current side and scope
+      const targetPosList = isManual ? manualPositions : positions;
+      const matchingPos = targetPosList.filter(p => (isManual ? (p.type === currentBulkSide) : (getTradeSide(p) === currentBulkSide)));
       const countEl = document.getElementById('bulk-edit-pos-count');
       const listEl = document.getElementById('bulk-edit-symbols-list');
 
       countEl.className = isBuy ? 'font-bold text-emerald-400 mono' : 'font-bold text-rose-400 mono';
       if (matchingPos.length > 0) {
-        countEl.innerText = `${matchingPos.length} Active + All Upcoming New ${currentBulkSide} Stocks`;
+        countEl.innerText = `${matchingPos.length} Active ${scopeLabel} ${currentBulkSide} Positions`;
         listEl.innerHTML = matchingPos.map(p => 
           `<span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-white mono font-bold">${p.symbol} (${p.qty})</span>`
-        ).join('') + ` <span class="px-2 py-0.5 rounded ${isBuy ? 'bg-emerald-900/60 border border-emerald-700 text-emerald-300' : 'bg-rose-900/60 border border-rose-700 text-rose-300'} mono font-bold">+ Future New ${currentBulkSide} Stocks</span>`;
+        ).join(' ');
       } else {
-        countEl.innerText = `0 Active (Applies to All Upcoming New ${currentBulkSide} Stocks)`;
-        listEl.innerHTML = `<span class="${isBuy ? 'text-emerald-300' : 'text-rose-300'}">No active ${currentBulkSide} positions right now. The custom amounts set below will be locked in and automatically applied to all newly entered ${currentBulkSide} stocks.</span>`;
+        countEl.innerText = `0 Active ${scopeLabel} ${currentBulkSide} Positions`;
+        listEl.innerHTML = `<span class="${isBuy ? 'text-emerald-300' : 'text-rose-300'}">No active ${scopeLabel} ${currentBulkSide} positions open right now.</span>`;
       }
 
       // Pre-fill input amounts
-      const defaultSl = getNormalSlAmount();
-      const defaultTp = getNormalTpAmount();
-      const currentSl = isBuy 
-        ? (customBuySl !== null ? customBuySl : (matchingPos.length && matchingPos[0].slAmount ? matchingPos[0].slAmount : defaultSl))
-        : (customSellSl !== null ? customSellSl : (matchingPos.length && matchingPos[0].slAmount ? matchingPos[0].slAmount : defaultSl));
-      const currentTp = isBuy
-        ? (customBuyTp !== null ? customBuyTp : (matchingPos.length && matchingPos[0].tpAmount ? matchingPos[0].tpAmount : defaultTp))
-        : (customSellTp !== null ? customSellTp : (matchingPos.length && matchingPos[0].tpAmount ? matchingPos[0].tpAmount : defaultTp));
+      const defaultSl = isManual ? Math.round((manualInitialCapital * manualRiskPerTradePct) / 100) : getNormalSlAmount();
+      const defaultTp = Math.round(defaultSl * 2.0);
+      const currentSl = isManual 
+        ? (matchingPos.length && (matchingPos[0].slAmount || matchingPos[0].sl_amount) ? (matchingPos[0].slAmount || matchingPos[0].sl_amount) : defaultSl)
+        : (isBuy ? (customBuySl !== null ? customBuySl : (matchingPos.length && matchingPos[0].slAmount ? matchingPos[0].slAmount : defaultSl)) : (customSellSl !== null ? customSellSl : (matchingPos.length && matchingPos[0].slAmount ? matchingPos[0].slAmount : defaultSl)));
+      const currentTp = isManual
+        ? (matchingPos.length && (matchingPos[0].tpAmount || matchingPos[0].tp_amount) ? (matchingPos[0].tpAmount || matchingPos[0].tp_amount) : defaultTp)
+        : (isBuy ? (customBuyTp !== null ? customBuyTp : (matchingPos.length && matchingPos[0].tpAmount ? matchingPos[0].tpAmount : defaultTp)) : (customSellTp !== null ? customSellTp : (matchingPos.length && matchingPos[0].tpAmount ? matchingPos[0].tpAmount : defaultTp)));
 
       document.getElementById('bulk-edit-sl-amount').value = Math.round(currentSl);
       document.getElementById('bulk-edit-tp-amount').value = Math.round(currentTp);
@@ -2021,6 +2539,7 @@
     function saveAllPositionsSlTp() {
       const side = currentBulkSide; // 'BUY' or 'SELL'
       const isBuy = side === 'BUY';
+      const isManual = currentBulkScope === 'MANUAL';
       const slVal = document.getElementById('bulk-edit-sl-amount').value;
       const tpVal = document.getElementById('bulk-edit-tp-amount').value;
       const slAmount = parseFloat(slVal) > 0 ? parseFloat(slVal) : null;
@@ -2028,6 +2547,46 @@
 
       if (!slAmount && !tpAmount) {
         alert(`Please enter a valid Stop Loss or Target Profit amount in ₹ for ${side} trades.`);
+        return;
+      }
+
+      if (isManual) {
+        let count = 0;
+        manualPositions.forEach(p => {
+          if (p.type === side) {
+            if (slAmount) { p.sl_amount = slAmount; p.slAmount = slAmount; }
+            if (tpAmount) { p.tp_amount = tpAmount; p.tpAmount = tpAmount; }
+            const qty = p.qty || 1;
+            const entry = p.entry || p.entry_price || 0;
+            p.sl = Math.max(0.5, p.type === 'BUY' ? entry - (p.sl_amount / qty) : entry + (p.sl_amount / qty));
+            p.target = p.type === 'BUY' ? entry + (p.tp_amount / qty) : Math.max(0.5, entry - (p.tp_amount / qty));
+            p.tp = p.target;
+            count++;
+          }
+        });
+
+        if (isServerConnected) {
+          fetch('/api/manual_bulk_update_sltp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ side: side, sl_amount: slAmount, tp_amount: tpAmount })
+          }).then(r => r.json()).then(data => {
+            if (typeof fetchState === 'function') fetchState();
+          }).catch(err => console.error("Error bulk updating manual positions:", err));
+        }
+
+        addManualLog(`BULK UPDATED ${count} Manual ${side} positions: SL=-₹${(slAmount || 0).toLocaleString()} | TP=+₹${(tpAmount || 0).toLocaleString()}`, isBuy ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold');
+        closeBulkEditSlTpModal();
+        renderManualDeskUI({
+          active_positions: manualPositions,
+          trade_history: manualHistory,
+          current_capital: manualCapital,
+          initial_capital: manualInitialCapital,
+          daily_loss_limit: manualDailyLossLimit,
+          risk_per_trade_pct: manualRiskPerTradePct,
+          is_connected: isManualConnected,
+          logs: manualLogs
+        });
         return;
       }
 
@@ -2074,6 +2633,49 @@
     function resetBulkPositionsToNormal() {
       const side = currentBulkSide; // 'BUY' or 'SELL'
       const isBuy = side === 'BUY';
+      const isManual = currentBulkScope === 'MANUAL';
+
+      if (isManual) {
+        const normalSl = Math.round((manualInitialCapital * manualRiskPerTradePct) / 100);
+        const normalTp = Math.round(normalSl * 2.0);
+        let count = 0;
+        manualPositions.forEach(p => {
+          if (p.type === side) {
+            p.sl_amount = normalSl; p.slAmount = normalSl;
+            p.tp_amount = normalTp; p.tpAmount = normalTp;
+            const qty = p.qty || 1;
+            const entry = p.entry || p.entry_price || 0;
+            p.sl = Math.max(0.5, p.type === 'BUY' ? entry - (normalSl / qty) : entry + (normalSl / qty));
+            p.target = p.type === 'BUY' ? entry + (normalTp / qty) : Math.max(0.5, entry - (normalTp / qty));
+            p.tp = p.target;
+            count++;
+          }
+        });
+
+        if (isServerConnected) {
+          fetch('/api/manual_bulk_update_sltp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ side: side, sl_amount: normalSl, tp_amount: normalTp })
+          }).then(r => r.json()).then(data => {
+            if (typeof fetchState === 'function') fetchState();
+          }).catch(err => console.error(err));
+        }
+
+        addManualLog(`RESET ${count} Manual ${side} positions to NORMAL SL/TP: SL=-₹${normalSl.toLocaleString()} | TP=+₹${normalTp.toLocaleString()}`, 'text-blue-300 font-semibold');
+        closeBulkEditSlTpModal();
+        renderManualDeskUI({
+          active_positions: manualPositions,
+          trade_history: manualHistory,
+          current_capital: manualCapital,
+          initial_capital: manualInitialCapital,
+          daily_loss_limit: manualDailyLossLimit,
+          risk_per_trade_pct: manualRiskPerTradePct,
+          is_connected: isManualConnected,
+          logs: manualLogs
+        });
+        return;
+      }
 
       // Clear persistent override for this side
       if (isBuy) {
@@ -3462,6 +4064,13 @@
             isRunning = data.is_running;
             updateUI();
           }
+
+          // Sync Manual Trading Desk
+          if (data.manual_desk) {
+            renderManualDeskUI(data.manual_desk);
+          }
+          // Update AI Quick-Load Chips for Manual Desk
+          updateAiQuickLoadChips(data.active_positions || positions || []);
         }
       } catch (err) {
         if (isServerConnected) {
@@ -3480,6 +4089,518 @@
 
     syncWithLiveServer();
     setInterval(syncWithLiveServer, 1000);
+
+    // ==============================================================
+    // MANUAL PRO TRADER DESK INTERACTIVE FUNCTIONS
+    // ==============================================================
+    function setManualOrderSide(side) {
+      manualOrderSide = (side === 'SELL') ? 'SELL' : 'BUY';
+      const buyBtn = document.getElementById('manual-side-buy-btn');
+      const sellBtn = document.getElementById('manual-side-sell-btn');
+      if (buyBtn && sellBtn) {
+        if (manualOrderSide === 'BUY') {
+          buyBtn.className = "flex-1 py-1.5 rounded-lg bg-emerald-600 text-white transition cursor-pointer shadow-sm";
+          sellBtn.className = "flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer";
+        } else {
+          buyBtn.className = "flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer";
+          sellBtn.className = "flex-1 py-1.5 rounded-lg bg-rose-600 text-white transition cursor-pointer shadow-sm";
+        }
+      }
+      updateManualSltpPreview();
+    }
+
+    function flipManualSide() {
+      setManualOrderSide(manualOrderSide === 'BUY' ? 'SELL' : 'BUY');
+    }
+
+    function onManualSymbolInput() {
+      const symInput = document.getElementById('manual-order-symbol');
+      if (!symInput) return;
+      const rawSym = symInput.value.trim().toUpperCase();
+      const badge = document.getElementById('manual-symbol-ltp');
+      if (!badge) return;
+      if (!rawSym) {
+        badge.classList.add('hidden');
+        return;
+      }
+      const cleanSym = rawSym.replace(/ MIS$/, '').replace(/ EQ$/, '').trim();
+      const u = universe.find(x => x.id === cleanSym) || NSE_DIRECTORY.find(x => x.symbol === cleanSym);
+      if (u) {
+        badge.innerText = `₹${u.price.toFixed(2)}`;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+      updateManualSltpPreview();
+    }
+
+    function autoCalcManualQty() {
+      const symInput = document.getElementById('manual-order-symbol');
+      const rawSym = symInput ? symInput.value.trim().toUpperCase() : '';
+      const cleanSym = rawSym.replace(/ MIS$/, '').replace(/ EQ$/, '').trim();
+      const u = universe.find(x => x.id === cleanSym) || NSE_DIRECTORY.find(x => x.symbol === cleanSym);
+      const ltp = u ? u.price : 500;
+      const slAmt = parseFloat(document.getElementById('manual-order-sl-amt')?.value) || 100;
+      const lossPerShare = Math.max(0.5, ltp * 0.01);
+      const calcQty = Math.max(1, Math.round(slAmt / lossPerShare));
+      const qtyEl = document.getElementById('manual-order-qty');
+      if (qtyEl) qtyEl.value = calcQty;
+      updateManualSltpPreview();
+    }
+
+    function updateManualSltpPreview() {
+      const slAmt = parseFloat(document.getElementById('manual-order-sl-amt')?.value) || 100;
+      const tpAmt = parseFloat(document.getElementById('manual-order-tp-amt')?.value) || 200;
+      const rrBadge = document.getElementById('manual-order-rr-badge');
+      if (rrBadge) {
+        const ratio = (tpAmt / Math.max(1, slAmt)).toFixed(1);
+        rrBadge.innerText = `1:${ratio} R:R`;
+      }
+    }
+
+    function onManualCapitalInput() {
+      const cap = parseFloat(document.getElementById('manual-input-capital')?.value) || 10000;
+      const pct = parseFloat(document.getElementById('manual-input-risk-pct')?.value) || 1.0;
+      const amt = Math.round((cap * pct) / 100);
+      const amtEl = document.getElementById('manual-input-risk-amount');
+      if (amtEl) amtEl.value = amt;
+      const badge = document.getElementById('manual-risk-calc-badge');
+      if (badge) badge.innerText = `= ₹${amt}`;
+    }
+
+    function onManualRiskPctInput() {
+      const cap = parseFloat(document.getElementById('manual-input-capital')?.value) || 10000;
+      const pct = parseFloat(document.getElementById('manual-input-risk-pct')?.value) || 1.0;
+      const amt = Math.round((cap * pct) / 100);
+      const amtEl = document.getElementById('manual-input-risk-amount');
+      if (amtEl) amtEl.value = amt;
+      const badge = document.getElementById('manual-risk-calc-badge');
+      if (badge) badge.innerText = `= ₹${amt}`;
+    }
+
+    function onManualRiskAmtInput() {
+      const cap = parseFloat(document.getElementById('manual-input-capital')?.value) || 10000;
+      const amt = parseFloat(document.getElementById('manual-input-risk-amount')?.value) || 100;
+      const pct = Math.round((amt / cap) * 1000) / 10;
+      const pctEl = document.getElementById('manual-input-risk-pct');
+      if (pctEl) pctEl.value = pct;
+      const badge = document.getElementById('manual-risk-calc-badge');
+      if (badge) badge.innerText = `= ₹${amt}`;
+    }
+
+    function updateAiQuickLoadChips(aiPositions) {
+      const container = document.getElementById('ai-quickload-chips');
+      if (!container) return;
+      if (!aiPositions || aiPositions.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-500 italic py-1">No AI positions currently open. You can still enter any stock symbol manually below!</span>`;
+        return;
+      }
+      let html = '';
+      aiPositions.forEach(p => {
+        const sym = p.underlying || (p.symbol ? p.symbol.split(' ')[0] : 'NIFTY');
+        const aiSide = p.type || 'BUY';
+        const oppSide = (aiSide === 'BUY') ? 'SELL' : 'BUY';
+        const entry = p.entry_price || p.entry || 0;
+        
+        // Chip 1: 1-Click Reverse / Fade (Opposite Side)
+        html += `
+          <button type="button" onclick="loadAiPositionToManualConsole('${sym}', '${aiSide}', ${entry}, true)"
+            class="px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer bg-purple-950/70 hover:bg-purple-900 border border-purple-500/60 text-purple-200 hover:text-white shadow-sm active:scale-95"
+            title="Load ${sym} and invert: Take ${oppSide} against AI ${aiSide}">
+            <span class="text-amber-400">⚡</span>
+            <span>Fade ${sym}</span>
+            <span class="text-[10px] px-1 py-0.2 rounded font-mono ${oppSide === 'BUY' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-rose-500/30 text-rose-300'}">${oppSide} (Flip)</span>
+          </button>
+        `;
+        // Chip 2: 1-Click Follow AI
+        html += `
+          <button type="button" onclick="loadAiPositionToManualConsole('${sym}', '${aiSide}', ${entry}, false)"
+            class="px-2.5 py-1 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 cursor-pointer bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white shadow-sm active:scale-95"
+            title="Load ${sym} with same side: Follow AI ${aiSide}">
+            <span>Follow ${sym} (${aiSide})</span>
+          </button>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function loadAiPositionToManualConsole(sym, aiSide, entryPrice, flip = false) {
+      const targetSide = flip ? (aiSide === 'BUY' ? 'SELL' : 'BUY') : aiSide;
+      const symInput = document.getElementById('manual-order-symbol');
+      if (symInput) {
+        symInput.value = sym;
+        onManualSymbolInput();
+      }
+      setManualOrderSide(targetSide);
+      autoCalcManualQty();
+      addManualLog(`Loaded ${sym} into Manual Order Console (${flip ? 'FLIPPED to ' + targetSide + ' (Fade Climax)' : 'Same Side ' + targetSide})`, 'text-indigo-300 font-semibold');
+      const orderConsole = document.getElementById('manual-order-symbol');
+      if (orderConsole) orderConsole.focus();
+    }
+
+    async function executeManualTradeOrder() {
+      const symInput = document.getElementById('manual-order-symbol');
+      const rawSym = symInput ? symInput.value.trim().toUpperCase() : '';
+      if (!rawSym) {
+        alert("Please enter a stock symbol (e.g. BHEL, CANBK).");
+        if (symInput) symInput.focus();
+        return;
+      }
+      const cleanSym = rawSym.replace(/ MIS$/, '').replace(/ EQ$/, '').trim();
+      const qty = parseInt(document.getElementById('manual-order-qty')?.value) || 1;
+      const slAmt = parseFloat(document.getElementById('manual-order-sl-amt')?.value) || 100;
+      const tpAmt = parseFloat(document.getElementById('manual-order-tp-amt')?.value) || 200;
+      const side = manualOrderSide;
+
+      const btn = document.getElementById('btn-manual-execute');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳ Executing...</span>`;
+      }
+
+      try {
+        const res = await fetch('/api/manual_order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbol: cleanSym,
+            side: side,
+            qty: qty,
+            sl_amount: slAmt,
+            tp_amount: tpAmt,
+            reason: `Manual Trader ${side} (Console)`
+          })
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          try {
+            const errObj = JSON.parse(errText);
+            alert(`Server error (${res.status}): ${errObj.message || errText}`);
+          } catch (e) {
+            alert(`⚠️ SERVER RESTART REQUIRED: The running bot server was started before manual trading was added.\n\nPlease close the command prompt and run 'start_bot.bat' to activate manual trading!`);
+          }
+          return;
+        }
+        const result = await res.json();
+        if (result && result.success) {
+          addManualLog(`✅ ORDER EXECUTED: ${side} ${qty} shares ${cleanSym} | SL: -₹${slAmt} | TP: +₹${tpAmt}`, 'text-emerald-400 font-bold');
+          if (symInput) symInput.value = '';
+          const badge = document.getElementById('manual-symbol-ltp');
+          if (badge) badge.classList.add('hidden');
+          syncWithLiveServer();
+        } else {
+          alert(`Execution error: ${result.message || 'Could not place order'}`);
+          addManualLog(`❌ Order Rejected: ${result.message || 'Error'}`, 'text-rose-400 font-bold');
+        }
+      } catch (err) {
+        console.error("Manual order error:", err);
+        alert("Failed to reach server. Please ensure bot server is running.");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>🚀 EXECUTE ORDER</span>`;
+        }
+      }
+    }
+
+    async function manualClosePosition(posId) {
+      if (!confirm(`Are you sure you want to close this manual position?`)) return;
+      try {
+        const res = await fetch('/api/manual_close_position', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ position_id: posId })
+        });
+        const result = await res.json();
+        if (result && result.success) {
+          addManualLog(`✅ Closed manual position ${posId}.`, 'text-amber-400 font-semibold');
+          syncWithLiveServer();
+        } else {
+          alert(`Could not close position: ${result.message || 'Error'}`);
+        }
+      } catch (err) {
+        console.error("Manual close error:", err);
+      }
+    }
+
+    async function saveManualSettings() {
+      const cap = parseFloat(document.getElementById('manual-input-capital')?.value) || 10000;
+      const loss = parseFloat(document.getElementById('manual-input-loss-limit')?.value) || 2000;
+      const risk = parseFloat(document.getElementById('manual-input-risk-pct')?.value) || 1.0;
+      const riskAmt = parseFloat(document.getElementById('manual-input-risk-amount')?.value) || Math.round((cap * risk) / 100);
+      const maxTrades = parseInt(document.getElementById('manual-input-max-trades')?.value) || 10;
+
+      // 1. Instant local state synchronization
+      manualInitialCapital = cap;
+      manualDailyLossLimit = loss;
+      manualRiskPerTradePct = risk;
+      manualMaxDailyTrades = maxTrades;
+      manualCapital = Math.max(0, cap + manualRealizedPnl);
+
+      // 2. Instant UI update on metric cards and indicators
+      const cardCap = document.getElementById('manual-card-capital');
+      if (cardCap) cardCap.innerText = `₹${manualCapital.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const cardInitCap = document.getElementById('manual-card-init-capital');
+      if (cardInitCap) cardInitCap.innerText = `₹${manualInitialCapital.toLocaleString('en-IN')}`;
+      const consoleCap = document.getElementById('manual-console-avail-cap');
+      if (consoleCap) consoleCap.innerText = `₹${manualCapital.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const badge = document.getElementById('manual-risk-calc-badge');
+      if (badge) badge.innerText = `= ₹${riskAmt}`;
+
+      // 3. Visual instant feedback on button
+      const saveBtn = document.getElementById('btn-manual-save-settings');
+      const saveIcon = document.getElementById('manual-save-settings-icon');
+      const saveText = document.getElementById('manual-save-settings-text');
+      if (saveBtn) {
+        saveBtn.className = "flex-1 py-2 px-3 bg-emerald-600 text-white rounded-xl text-xs font-bold transition shadow-lg flex items-center justify-center space-x-1.5 ring-2 ring-emerald-400 scale-[1.02]";
+        if (saveIcon) saveIcon.innerText = "✓";
+        if (saveText) saveText.innerText = "Saved!";
+        setTimeout(() => {
+          if (saveBtn) {
+            saveBtn.className = "flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-md flex items-center justify-center space-x-1.5 active:scale-95";
+          }
+          if (saveIcon) saveIcon.innerText = "💾";
+          if (saveText) saveText.innerText = "Save Settings";
+        }, 2200);
+      }
+
+      // 4. Toast notification and logs
+      showToastNotification(`Manual Settings Saved: Capital ₹${cap.toLocaleString('en-IN')}, Loss Limit ₹${loss.toLocaleString('en-IN')}, Risk ${risk}% (₹${riskAmt}), Cap: ${maxTrades} Trades`);
+      addManualLog(`💾 Saved Manual Desk Settings: Capital: ₹${cap.toLocaleString('en-IN')} | Loss Limit: ₹${loss.toLocaleString('en-IN')} | Risk: ${risk}% (₹${riskAmt}) | Max Trades: ${maxTrades}`, 'text-emerald-400 font-bold');
+
+      // 5. Backend persistence
+      try {
+        const res = await fetch('/api/manual_settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            initial_capital: cap,
+            daily_loss_limit: loss,
+            risk_per_trade_pct: risk,
+            max_daily_trades: maxTrades
+          })
+        });
+        if (res.ok) {
+          const result = await res.json();
+          if (result && result.success) {
+            syncWithLiveServer();
+          }
+        }
+      } catch (err) {
+        console.warn("Manual settings save network warning:", err);
+      }
+    }
+
+    async function resetManualAccount() {
+      if (!confirm("Are you sure you want to reset the Manual Trading Desk account back to ₹10,000 balance?")) return;
+      try {
+        const res = await fetch('/api/manual_reset', { method: 'POST' });
+        const result = await res.json();
+        if (result && result.success) {
+          addManualLog("🔄 Manual Trading Desk account reset successfully.", 'text-emerald-400 font-bold');
+          showToastNotification("Manual Trading Desk account reset to default balance.");
+          syncWithLiveServer();
+        }
+      } catch (err) {
+        console.error("Manual reset error:", err);
+      }
+    }
+
+    function addManualLog(msg, colorClass = 'text-slate-300') {
+      const terminal = document.getElementById('manual-terminal-logs');
+      if (!terminal) return;
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+      const line = document.createElement('div');
+      line.className = `flex space-x-2 ${colorClass}`;
+      line.innerHTML = `<span class="text-slate-500">[${timeStr}]</span> <span>${msg}</span>`;
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function renderManualDeskUI(m) {
+      if (!m) return;
+      manualPositions = (m.active_positions || []).map(p => ({
+        ...p,
+        entry: Number(p.entry_price ?? p.entry ?? 0),
+        entry_price: Number(p.entry_price ?? p.entry ?? 0),
+        ltp: Number(p.current_price ?? p.ltp ?? p.entry_price ?? 0),
+        current_price: Number(p.current_price ?? p.ltp ?? p.entry_price ?? 0),
+        sl: Number(p.sl ?? 0),
+        tp: Number(p.target ?? p.tp ?? 0),
+        target: Number(p.target ?? p.tp ?? 0),
+        slAmount: Number(p.sl_amount ?? p.slAmount ?? 100),
+        sl_amount: Number(p.sl_amount ?? p.slAmount ?? 100),
+        tpAmount: Number(p.tp_amount ?? p.tpAmount ?? 200),
+        tp_amount: Number(p.tp_amount ?? p.tpAmount ?? 200),
+        styleTag: p.style_tag || 'MANUAL',
+        style_tag: p.style_tag || 'MANUAL',
+        type: p.type || 'BUY',
+        isManual: true
+      }));
+      manualHistory = m.trade_history || [];
+      manualCapital = m.current_capital || 10000;
+      manualInitialCapital = m.initial_capital || 10000;
+      manualDailyLossLimit = m.daily_loss_limit || 2000;
+      manualRiskPerTradePct = m.risk_per_trade_pct || 1.0;
+      manualMaxDailyTrades = m.max_daily_trades || 10;
+      manualRealizedPnl = m.realized_pnl || 0;
+      manualUnrealizedPnl = m.unrealized_pnl || 0;
+      manualTotalTrades = m.total_trades || 0;
+      manualWinningTrades = m.winning_trades || 0;
+
+      // Initial populate of manual inputs
+      if (!hasLoadedManualServerSettings) {
+        hasLoadedManualServerSettings = true;
+        const capEl = document.getElementById('manual-input-capital');
+        if (capEl) capEl.value = manualInitialCapital;
+        const lossEl = document.getElementById('manual-input-loss-limit');
+        if (lossEl) lossEl.value = manualDailyLossLimit;
+        const riskEl = document.getElementById('manual-input-risk-pct');
+        if (riskEl) riskEl.value = manualRiskPerTradePct;
+        const maxTradesEl = document.getElementById('manual-input-max-trades');
+        if (maxTradesEl) maxTradesEl.value = manualMaxDailyTrades;
+        onManualRiskPctInput();
+      }
+
+      // Update Card 1: Capital
+      const cardCap = document.getElementById('manual-card-capital');
+      if (cardCap) cardCap.innerText = `₹${manualCapital.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const cardInitCap = document.getElementById('manual-card-init-capital');
+      if (cardInitCap) cardInitCap.innerText = `₹${manualInitialCapital.toLocaleString('en-IN')}`;
+      const consoleCap = document.getElementById('manual-console-avail-cap');
+      if (consoleCap) consoleCap.innerText = `₹${manualCapital.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      // Update Card 2: Net P&L
+      const netPnl = m.net_pnl || 0;
+      const grossPnl = m.gross_pnl || 0;
+      const brokerage = m.total_brokerage || 0;
+      const unrl = m.unrealized_pnl || 0;
+
+      const cardPnl = document.getElementById('manual-card-pnl');
+      if (cardPnl) {
+        cardPnl.innerText = (netPnl >= 0 ? '+' : '') + `₹${netPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        cardPnl.className = `mt-1 text-2xl font-bold mono ${netPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+      }
+      const cardGross = document.getElementById('manual-card-gross-pnl');
+      if (cardGross) cardGross.innerText = (grossPnl >= 0 ? '+' : '') + `₹${grossPnl.toFixed(2)}`;
+      const cardBrok = document.getElementById('manual-card-brokerage-total');
+      if (cardBrok) cardBrok.innerText = `-₹${brokerage.toFixed(2)}`;
+      const cardUnrl = document.getElementById('manual-card-unrealized');
+      if (cardUnrl) {
+        cardUnrl.innerText = (unrl >= 0 ? '+' : '') + `₹${unrl.toFixed(2)}`;
+        cardUnrl.className = `mono ${unrl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+      }
+      const cardBrokTag = document.getElementById('manual-card-brokerage-tag');
+      if (cardBrokTag) cardBrokTag.innerText = `Charges: -₹${brokerage.toFixed(0)}`;
+
+      // Update Card 3: Daily Loss Limit
+      const cardLimitVal = document.getElementById('manual-card-limit-val');
+      if (cardLimitVal) cardLimitVal.innerText = `Max: ₹${manualDailyLossLimit.toLocaleString('en-IN')}`;
+      const cardLossPct = document.getElementById('manual-card-loss-pct');
+      if (cardLossPct) cardLossPct.innerText = `${m.loss_used_pct || 0.0}% Used`;
+      const remLoss = Math.max(0, manualDailyLossLimit - Math.abs(Math.min(0, netPnl)));
+      const cardLossRem = document.getElementById('manual-card-loss-rem');
+      if (cardLossRem) cardLossRem.innerText = `₹${remLoss.toLocaleString('en-IN')} left`;
+      const lossBar = document.getElementById('manual-loss-bar');
+      if (lossBar) {
+        const pct = Math.min(100, m.loss_used_pct || 0);
+        lossBar.style.width = `${pct}%`;
+        lossBar.className = `h-full transition-all duration-300 ${pct > 80 ? 'bg-rose-500' : (pct > 50 ? 'bg-amber-500' : 'bg-emerald-500')}`;
+      }
+
+      // Update Card 4: Win Rate & Trades
+      const cardWinRate = document.getElementById('manual-card-winrate');
+      if (cardWinRate) cardWinRate.innerText = `${m.win_rate || 0.0}%`;
+      const cardWins = document.getElementById('manual-card-wins');
+      if (cardWins) cardWins.innerText = manualWinningTrades;
+      const cardLosses = document.getElementById('manual-card-losses');
+      if (cardLosses) cardLosses.innerText = (manualTotalTrades - manualWinningTrades);
+      const cardTradeCap = document.getElementById('manual-card-trade-cap-pill');
+      if (cardTradeCap) cardTradeCap.innerText = `${manualTotalTrades}/${manualMaxDailyTrades} Trades`;
+
+      // Render Active Positions Table
+      const posTbody = document.getElementById('manual-pos-tbody');
+      const posBadge = document.getElementById('manual-pos-badge');
+      if (posBadge) posBadge.innerText = manualPositions.length;
+
+      if (posTbody) {
+        if (manualPositions.length === 0) {
+          posTbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-500">No manual positions open. Use the console above to place your first trade.</td></tr>`;
+        } else {
+          posTbody.innerHTML = manualPositions.map(p => {
+            const pnl = p.pnl || 0;
+            const pnlClass = pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
+            const isBuy = p.type === 'BUY';
+            return `
+              <tr class="hover:bg-slate-800/40 transition">
+                <td class="py-2.5 px-3">
+                  <div class="font-bold text-white mono">${p.symbol}</div>
+                  <div class="text-[10px] text-slate-400">${p.reason || 'Manual Trade'}</div>
+                </td>
+                <td class="py-2.5 px-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isBuy ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}">
+                    ${p.type}
+                  </span>
+                </td>
+                <td class="py-2.5 px-2 mono text-slate-200">${p.qty}</td>
+                <td class="py-2.5 px-2 mono text-slate-300">₹${(p.entry_price || p.entry || 0).toFixed(2)}</td>
+                <td class="py-2.5 px-2 mono font-bold text-white">₹${(p.current_price || p.ltp || 0).toFixed(2)}</td>
+                <td class="py-2.5 px-2 mono text-[11px]">
+                  <div class="text-rose-400">SL: ₹${(p.sl || 0).toFixed(2)} (-₹${Math.round(p.sl_amount || 100)})</div>
+                  <div class="text-emerald-400">TP: ₹${(p.target || p.tp || 0).toFixed(2)} (+₹${Math.round(p.tp_amount || 200)})</div>
+                </td>
+                <td class="py-2.5 px-2 mono font-bold ${pnlClass}">
+                  ${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)}
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <div class="flex items-center justify-end space-x-1.5">
+                    <button onclick="openPositionChart('${p.id}')" class="px-2 py-1 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer shadow-sm transition" title="View Real Candlestick Chart">
+                      📈 Chart
+                    </button>
+                    <button onclick="openEditSlTpModal('${p.id}')" class="px-2 py-1 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 hover:text-white rounded-lg text-xs font-semibold border border-indigo-700/80 transition cursor-pointer" title="Edit SL/TP">
+                      ✏️ Edit
+                    </button>
+                    <button onclick="manualClosePosition('${p.id}')" class="px-2.5 py-1 bg-rose-600/20 hover:bg-rose-600/50 border border-rose-500/40 text-rose-300 hover:text-white rounded-lg text-xs font-bold transition cursor-pointer">
+                      Exit
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      // Render History Table
+      const histTbody = document.getElementById('manual-hist-tbody');
+      const histCount = document.getElementById('manual-hist-count');
+      if (histCount) histCount.innerText = `${manualHistory.length} Closed`;
+
+      if (histTbody) {
+        if (manualHistory.length === 0) {
+          histTbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-500">No manual closed trades yet.</td></tr>`;
+        } else {
+          histTbody.innerHTML = manualHistory.map(h => {
+            const pnl = h.pnl || 0;
+            const pnlClass = pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
+            const isBuy = h.type === 'BUY';
+            return `
+              <tr class="hover:bg-slate-800/30 transition">
+                <td class="py-2 px-3 font-bold mono text-white">${h.symbol}</td>
+                <td class="py-2 px-2">
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${isBuy ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${h.type}</span>
+                </td>
+                <td class="py-2 px-2 mono text-slate-300">${h.qty}</td>
+                <td class="py-2 px-2 mono text-slate-400">₹${(h.entry_price || h.entry || 0).toFixed(2)}</td>
+                <td class="py-2 px-2 mono text-slate-300">₹${(h.exit_price || h.exit || 0).toFixed(2)}</td>
+                <td class="py-2 px-2 mono font-bold ${pnlClass}">${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)}</td>
+                <td class="py-2 px-3 text-slate-400 text-[11px]">${h.reason || 'Manual Exit'}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    }
 
     // ==============================================================
     // AURA QUANT LIVE CANDLESTICK & TECHNICAL SIGNALS CHART ENGINE
@@ -3505,7 +4626,25 @@
       activeChartPosId = posId;
 
       // 1. Resolve Position Details (From local state or scanner)
-      let pos = positions.find(p => p.id === posId || p.symbol === posId);
+      let pos = positions.find(p => p.id === posId) || manualPositions.find(p => p.id === posId);
+      if (!pos) pos = positions.find(p => p.symbol === posId) || manualPositions.find(p => p.symbol === posId);
+      if (pos) {
+        const e = Number(pos.entry ?? pos.entry_price ?? pos.basePrice ?? pos.base_price ?? 0);
+        const l = Number(pos.ltp ?? pos.current_price ?? e);
+        const s = Number(pos.sl ?? 0);
+        const t = Number(pos.tp ?? pos.target ?? 0);
+        const sa = Number(pos.slAmount ?? pos.sl_amount ?? 100);
+        const ta = Number(pos.tpAmount ?? pos.tp_amount ?? 200);
+        pos = Object.assign({}, pos, {
+          entry: e, entry_price: e,
+          ltp: l, current_price: l,
+          sl: s, tp: t, target: t,
+          slAmount: sa, sl_amount: sa,
+          tpAmount: ta, tp_amount: ta,
+          type: pos.type || 'BUY',
+          styleTag: pos.styleTag || pos.style_tag || (pos.isManual ? 'MANUAL' : 'TREND')
+        });
+      }
       let symbol = pos ? pos.symbol : posId;
       let underlying = pos ? (pos.underlying || pos.symbol.split(' ')[0]) : posId.split(' ')[0];
       activeChartSymbol = symbol;
@@ -3519,8 +4658,9 @@
 
       const styleTagEl = document.getElementById('chart-style-tag');
       if (styleTagEl) {
-        styleTagEl.innerText = `[${pos?.styleTag || 'TREND'}]`;
-        styleTagEl.className = `px-2 py-0.5 rounded text-[10px] font-bold ${pos?.styleTag === 'SCALP' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : (pos?.styleTag === 'SNIPER' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30')}`;
+        const tag = pos?.styleTag || 'TREND';
+        styleTagEl.innerText = `[${tag}]`;
+        styleTagEl.className = `px-2 py-0.5 rounded text-[10px] font-bold ${tag === 'SCALP' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : (tag === 'SNIPER' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : (tag === 'MANUAL' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'))}`;
       }
 
       const typeTagEl = document.getElementById('chart-type-tag');
@@ -3534,7 +4674,10 @@
       if (qtyEl) qtyEl.innerText = pos ? pos.qty : '--';
 
       const entryValEl = document.getElementById('chart-entry-val');
-      if (entryValEl) entryValEl.innerText = pos ? `₹${pos.entry.toFixed(2)}` : '₹--';
+      if (entryValEl) {
+        const e = pos ? (pos.entry || pos.entry_price || 0) : 0;
+        entryValEl.innerText = e > 0 ? `₹${e.toFixed(2)}` : '₹--';
+      }
 
       const underNameEl = document.getElementById('chart-underlying-name');
       if (underNameEl) underNameEl.innerText = `NSE Real Feed: ${underlying}`;
@@ -3548,7 +4691,17 @@
         if (res.ok) {
           candleData = await res.json();
           if (candleData.position && !pos) {
-            pos = candleData.position;
+            const cp = candleData.position;
+            const e = Number(cp.entry ?? cp.entry_price ?? cp.base_price ?? 0);
+            pos = Object.assign({}, cp, {
+              entry: e, entry_price: e,
+              ltp: Number(cp.ltp ?? cp.current_price ?? e),
+              sl: Number(cp.sl ?? 0),
+              tp: Number(cp.tp ?? cp.target ?? 0),
+              slAmount: Number(cp.slAmount ?? cp.sl_amount ?? 100),
+              tpAmount: Number(cp.tpAmount ?? cp.tp_amount ?? 200),
+              type: cp.type || 'BUY'
+            });
           }
         }
       } catch (err) {
@@ -3557,8 +4710,8 @@
 
       // If remote candles are unavailable or empty, generate client-side series
       if (!candleData || !candleData.candles || candleData.candles.length === 0) {
-        const u = universe.find(x => x.id === underlying) || { price: pos ? pos.entry : 1000, score: 75, rvol: 1.2 };
-        const basePrice = pos ? pos.entry : (u.price || 1000);
+        const u = universe.find(x => x.id === underlying) || { price: pos ? (pos.entry || 1000) : 1000, score: 75, rvol: 1.2 };
+        const basePrice = pos ? (pos.entry || u.price || 1000) : (u.price || 1000);
         candleData = {
           candles: generateClientCandles(basePrice, 50),
           score: u.score || 72,
@@ -3638,11 +4791,11 @@
 
     function updateChartHeaderMetrics(pos) {
       if (!pos) return;
-      const ltp = pos.ltp || pos.entry || 0;
-      const entry = pos.entry || ltp;
+      const entry = Number(pos.entry ?? pos.entry_price ?? 0);
+      const ltp = Number(pos.ltp ?? pos.current_price ?? entry);
       const diffPts = ltp - entry;
       const diffPct = entry > 0 ? (diffPts / entry) * 100 : 0;
-      const pnl = pos.pnl !== undefined ? pos.pnl : ((pos.type === 'SELL' ? (entry - ltp) : (ltp - entry)) * (pos.qty || 1));
+      const pnl = pos.pnl !== undefined ? Number(pos.pnl) : ((pos.type === 'SELL' ? (entry - ltp) : (ltp - entry)) * (pos.qty || 1));
 
       const ltpEl = document.getElementById('chart-ltp-val');
       const diffEl = document.getElementById('chart-price-diff');
@@ -3662,7 +4815,7 @@
     }
 
     function updateChartHud(data, pos) {
-      const score = data.score || 75;
+      const score = (data && data.score) || 75;
       const hudScore = document.getElementById('hud-score');
       if (hudScore) {
         hudScore.innerText = `${score}% ${score >= 70 ? 'STRONG BUY' : (score <= 30 ? 'STRONG SELL' : 'NEUTRAL')}`;
@@ -3680,15 +4833,16 @@
         }
       }
 
-      const vwap = data.vwap || (pos ? pos.entry : 1000);
+      const entryPrice = pos ? Number(pos.entry ?? pos.entry_price ?? 1000) : 1000;
+      const vwap = (data && data.vwap) || entryPrice;
       const hudVwap = document.getElementById('hud-vwap');
       if (hudVwap) {
-        const distPct = data.vwap_dist_pct !== undefined ? data.vwap_dist_pct : "+0.2%";
+        const distPct = (data && data.vwap_dist_pct !== undefined) ? data.vwap_dist_pct : "+0.2%";
         hudVwap.innerText = `₹${vwap.toFixed(2)} (${distPct} dist)`;
       }
 
-      const ema9 = data.ema9 || vwap;
-      const ema20 = data.ema20 || vwap;
+      const ema9 = (data && data.ema9) || vwap;
+      const ema20 = (data && data.ema20) || vwap;
       const hudRibbon = document.getElementById('hud-ema-ribbon');
       if (hudRibbon) {
         const isBullRibbon = ema9 >= ema20;
@@ -3698,7 +4852,7 @@
 
       const hudMtf = document.getElementById('hud-mtf');
       if (hudMtf) {
-        const mtf = data.mtf_trend_15m || "BULLISH";
+        const mtf = (data && data.mtf_trend_15m) || "BULLISH";
         hudMtf.innerText = `${mtf} Harmony ✓`;
         hudMtf.className = `font-bold mono ${mtf === 'BULLISH' ? 'text-emerald-400' : 'text-rose-400'}`;
       }
@@ -3713,12 +4867,16 @@
         const legEma9 = document.getElementById('leg-ema9');
         const legEma20 = document.getElementById('leg-ema20');
 
-        if (legEntry) legEntry.innerText = `₹${pos.entry.toFixed(2)}`;
-        if (legSl) legSl.innerText = `₹${pos.sl.toFixed(2)}`;
-        if (legTp) legTp.innerText = `₹${(pos.tp || pos.target || 0).toFixed(2)}`;
+        const entry = Number(pos.entry ?? pos.entry_price ?? 0);
+        const sl = Number(pos.sl ?? 0);
+        const tp = Number(pos.tp ?? pos.target ?? 0);
+
+        if (legEntry) legEntry.innerText = entry > 0 ? `₹${entry.toFixed(2)}` : '₹--';
+        if (legSl) legSl.innerText = sl > 0 ? `₹${sl.toFixed(2)}` : '₹--';
+        if (legTp) legTp.innerText = tp > 0 ? `₹${tp.toFixed(2)}` : '₹--';
         if (legBe) {
-          const beVal = (pos.isBreakeven || pos.breakeven_locked) ? pos.sl : (pos.type === 'BUY' ? pos.entry * 1.005 : pos.entry * 0.995);
-          legBe.innerText = `₹${beVal.toFixed(2)}`;
+          const beVal = (pos.isBreakeven || pos.breakeven_locked) ? sl : (pos.type === 'BUY' ? entry * 1.005 : entry * 0.995);
+          legBe.innerText = beVal > 0 ? `₹${beVal.toFixed(2)}` : '₹--';
         }
         if (legVwap) legVwap.innerText = `₹${vwap.toFixed(2)}`;
         if (legEma9) legEma9.innerText = `₹${ema9.toFixed(2)}`;
@@ -3739,168 +4897,252 @@
       }
       container.innerHTML = '';
 
+      // Normalize position values safely
+      const normPos = pos ? {
+        ...pos,
+        entry: Number(pos.entry ?? pos.entry_price ?? pos.basePrice ?? pos.base_price ?? 0),
+        sl: Number(pos.sl ?? 0),
+        tp: Number(pos.tp ?? pos.target ?? 0),
+        slAmount: Number(pos.slAmount ?? pos.sl_amount ?? 1000),
+        tpAmount: Number(pos.tpAmount ?? pos.tp_amount ?? 2000),
+        type: pos.type || 'BUY'
+      } : null;
+
+      // Ensure candles is a valid array
+      let inputCandles = candles;
+      if (!Array.isArray(inputCandles) || inputCandles.length === 0) {
+        const fallbackBase = normPos ? (normPos.entry || 1000) : 1000;
+        inputCandles = generateClientCandles(fallbackBase, 50);
+      }
+
+      // Sort and deduplicate candles by timestamp
+      const sorted = [...inputCandles].sort((a, b) => Number(a.time) - Number(b.time));
+      const validCandles = [];
+      const seenTimes = new Set();
+      for (const c of sorted) {
+        const t = Math.floor(Number(c.time));
+        if (isNaN(t) || t <= 0) continue;
+        if (seenTimes.has(t)) continue;
+        const o = Number(c.open);
+        const h = Number(c.high);
+        const l = Number(c.low);
+        const cl = Number(c.close);
+        if (isNaN(o) || isNaN(h) || isNaN(l) || isNaN(cl)) continue;
+        seenTimes.add(t);
+        validCandles.push({
+          time: t,
+          open: o,
+          high: Math.max(h, o, cl),
+          low: Math.min(l, o, cl),
+          close: cl,
+          volume: Number(c.volume) || 1000,
+          vwap: Number(c.vwap) || null,
+          ema9: Number(c.ema9) || null,
+          ema20: Number(c.ema20) || null
+        });
+      }
+
+      if (validCandles.length === 0) {
+        const fallbackBase = normPos ? (normPos.entry || 1000) : 1000;
+        const genCandles = generateClientCandles(fallbackBase, 50);
+        for (const c of genCandles) validCandles.push(c);
+      }
+
       if (typeof LightweightCharts === 'undefined') {
         if (canvasFallback) {
           canvasFallback.classList.remove('hidden');
-          renderCanvasFallback(canvasFallback, candles, pos);
+          renderCanvasFallback(canvasFallback, validCandles, normPos);
         }
         return;
       }
 
-      if (canvasFallback) canvasFallback.classList.add('hidden');
+      try {
+        const chartWidth = Math.max(container.clientWidth || 0, 700);
+        const chartHeight = Math.max(container.clientHeight || 0, 440);
 
-      const chart = LightweightCharts.createChart(container, {
-        width: container.clientWidth || 850,
-        height: container.clientHeight || 440,
-        layout: {
-          background: { type: 'solid', color: '#090d16' },
-          textColor: '#94a3b8',
-          fontSize: 11,
-          fontFamily: "'JetBrains Mono', monospace",
-        },
-        grid: {
-          vertLines: { color: '#1e293b33', style: 1 },
-          horzLines: { color: '#1e293b33', style: 1 },
-        },
-        crosshair: {
-          mode: LightweightCharts.CrosshairMode.Normal,
-          vertLine: { color: '#64748b80', width: 1, style: 2 },
-          horzLine: { color: '#64748b80', width: 1, style: 2 },
-        },
-        rightPriceScale: {
-          borderColor: '#334155',
-          scaleMargins: { top: 0.1, bottom: 0.22 },
-        },
-        timeScale: {
-          borderColor: '#334155',
-          timeVisible: true,
-          secondsVisible: false,
-        },
-      });
-
-      activeChartInstance = chart;
-
-      // 1. Candlestick Series
-      const candleSeries = chart.addCandlestickSeries({
-        upColor: '#10b981',
-        downColor: '#f43f5e',
-        borderVisible: false,
-        wickUpColor: '#10b981',
-        wickDownColor: '#f43f5e',
-      });
-      activeCandleSeries = candleSeries;
-
-      const formattedCandles = candles.map(c => ({
-        time: c.time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close
-      }));
-      candleSeries.setData(formattedCandles);
-
-      // 2. Volume Histogram Overlay
-      const volumeSeries = chart.addHistogramSeries({
-        priceFormat: { type: 'volume' },
-        priceScaleId: '',
-        scaleMargins: { top: 0.82, bottom: 0 },
-      });
-      activeVolumeSeries = volumeSeries;
-      volumeSeries.setData(candles.map(c => ({
-        time: c.time,
-        value: c.volume || 1000,
-        color: c.close >= c.open ? '#10b98133' : '#f43f5e33'
-      })));
-
-      // 3. Technical Indicators (VWAP, 9 EMA, 20 EMA)
-      if (showIndicators) {
-        const vwapSeries = chart.addLineSeries({
-          color: '#f97316',
-          lineWidth: 2,
-          title: 'VWAP',
-          priceLineVisible: false,
-          lastValueVisible: true,
-        });
-        activeVwapSeries = vwapSeries;
-        vwapSeries.setData(candles.filter(c => c.vwap).map(c => ({ time: c.time, value: c.vwap })));
-
-        const ema9Series = chart.addLineSeries({
-          color: '#06b6d4',
-          lineWidth: 1.5,
-          title: '9 EMA',
-          priceLineVisible: false,
-          lastValueVisible: false,
-        });
-        activeEma9Series = ema9Series;
-        ema9Series.setData(candles.filter(c => c.ema9).map(c => ({ time: c.time, value: c.ema9 })));
-
-        const ema20Series = chart.addLineSeries({
-          color: '#a855f7',
-          lineWidth: 1.5,
-          title: '20 EMA',
-          priceLineVisible: false,
-          lastValueVisible: false,
-        });
-        activeEma20Series = ema20Series;
-        ema20Series.setData(candles.filter(c => c.ema20).map(c => ({ time: c.time, value: c.ema20 })));
-      }
-
-      // 4. Trade Levels Overlay (Entry, Stop Loss, Target Profit, Auto-Breakeven)
-      if (showTradeLines && pos) {
-        activeEntryPriceLine = candleSeries.createPriceLine({
-          price: pos.entry,
-          color: '#38bdf8',
-          lineWidth: 2,
-          lineStyle: LightweightCharts.LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: `ENTRY @ ₹${pos.entry.toFixed(2)}`,
+        const chart = LightweightCharts.createChart(container, {
+          width: chartWidth,
+          height: chartHeight,
+          layout: {
+            background: { type: 'solid', color: '#090d16' },
+            textColor: '#94a3b8',
+            fontSize: 11,
+            fontFamily: "'JetBrains Mono', monospace",
+          },
+          grid: {
+            vertLines: { color: '#1e293b33', style: 1 },
+            horzLines: { color: '#1e293b33', style: 1 },
+          },
+          crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+            vertLine: { color: '#64748b80', width: 1, style: 2 },
+            horzLine: { color: '#64748b80', width: 1, style: 2 },
+          },
+          rightPriceScale: {
+            borderColor: '#334155',
+            scaleMargins: { top: 0.1, bottom: 0.22 },
+          },
+          timeScale: {
+            borderColor: '#334155',
+            timeVisible: true,
+            secondsVisible: false,
+          },
         });
 
-        activeSlPriceLine = candleSeries.createPriceLine({
-          price: pos.sl,
-          color: '#f43f5e',
-          lineWidth: 2,
-          lineStyle: LightweightCharts.LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: `SL @ ₹${pos.sl.toFixed(2)} (-₹${Math.round(pos.slAmount || 1000)})`,
+        activeChartInstance = chart;
+
+        // 1. Candlestick Series
+        const candleSeries = chart.addCandlestickSeries({
+          upColor: '#10b981',
+          downColor: '#f43f5e',
+          borderVisible: false,
+          wickUpColor: '#10b981',
+          wickDownColor: '#f43f5e',
         });
+        activeCandleSeries = candleSeries;
 
-        const targetVal = pos.tp || pos.target || (pos.entry * 1.02);
-        activeTpPriceLine = candleSeries.createPriceLine({
-          price: targetVal,
-          color: '#10b981',
-          lineWidth: 2,
-          lineStyle: LightweightCharts.LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: `TARGET @ ₹${targetVal.toFixed(2)} (+₹${Math.round(pos.tpAmount || 2000)})`,
+        const formattedCandles = validCandles.map(c => ({
+          time: c.time,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close
+        }));
+        candleSeries.setData(formattedCandles);
+
+        // 2. Volume Histogram Overlay
+        const volumeSeries = chart.addHistogramSeries({
+          priceFormat: { type: 'volume' },
+          priceScaleId: '',
+          scaleMargins: { top: 0.82, bottom: 0 },
         });
+        activeVolumeSeries = volumeSeries;
+        volumeSeries.setData(validCandles.map(c => ({
+          time: c.time,
+          value: c.volume || 1000,
+          color: c.close >= c.open ? '#10b98133' : '#f43f5e33'
+        })));
 
-        const isBeLocked = pos.isBreakeven || pos.breakeven_locked;
-        const beTriggerPrice = isBeLocked ? pos.sl : (pos.type === 'BUY' ? pos.entry * (1.0 + (pos.breakevenTrigger || 0.005)) : pos.entry * (1.0 - (pos.breakevenTrigger || 0.005)));
-        const beLabel = isBeLocked ? `🛡️ BREAKEVEN LOCKED: ₹${pos.sl.toFixed(2)}` : `🛡️ BE TRIGGER: ₹${beTriggerPrice.toFixed(2)}`;
-
-        activeBePriceLine = candleSeries.createPriceLine({
-          price: beTriggerPrice,
-          color: '#fbbf24',
-          lineWidth: isBeLocked ? 2 : 1,
-          lineStyle: isBeLocked ? LightweightCharts.LineStyle.Solid : LightweightCharts.LineStyle.Dotted,
-          axisLabelVisible: true,
-          title: beLabel,
-        });
-      }
-
-      chart.timeScale().fitContent();
-
-      const resizeHandler = () => {
-        if (activeChartInstance && container) {
-          activeChartInstance.applyOptions({
-            width: container.clientWidth,
-            height: container.clientHeight
+        // 3. Technical Indicators (VWAP, 9 EMA, 20 EMA)
+        if (showIndicators) {
+          const vwapSeries = chart.addLineSeries({
+            color: '#f97316',
+            lineWidth: 2,
+            title: 'VWAP',
+            priceLineVisible: false,
+            lastValueVisible: true,
           });
+          activeVwapSeries = vwapSeries;
+          vwapSeries.setData(validCandles.filter(c => c.vwap).map(c => ({ time: c.time, value: c.vwap })));
+
+          const ema9Series = chart.addLineSeries({
+            color: '#06b6d4',
+            lineWidth: 1.5,
+            title: '9 EMA',
+            priceLineVisible: false,
+            lastValueVisible: false,
+          });
+          activeEma9Series = ema9Series;
+          ema9Series.setData(validCandles.filter(c => c.ema9).map(c => ({ time: c.time, value: c.ema9 })));
+
+          const ema20Series = chart.addLineSeries({
+            color: '#a855f7',
+            lineWidth: 1.5,
+            title: '20 EMA',
+            priceLineVisible: false,
+            lastValueVisible: false,
+          });
+          activeEma20Series = ema20Series;
+          ema20Series.setData(validCandles.filter(c => c.ema20).map(c => ({ time: c.time, value: c.ema20 })));
         }
-      };
-      window.removeEventListener('resize', resizeHandler);
-      window.addEventListener('resize', resizeHandler);
+
+        // 4. Trade Levels Overlay (Entry, Stop Loss, Target Profit, Auto-Breakeven)
+        if (showTradeLines && normPos && normPos.entry > 0) {
+          try {
+            activeEntryPriceLine = candleSeries.createPriceLine({
+              price: normPos.entry,
+              color: '#38bdf8',
+              lineWidth: 2,
+              lineStyle: LightweightCharts.LineStyle.Dashed,
+              axisLabelVisible: true,
+              title: `ENTRY @ ₹${normPos.entry.toFixed(2)}`,
+            });
+          } catch (e) { console.warn("Failed to create entry line:", e); }
+
+          if (normPos.sl > 0) {
+            try {
+              activeSlPriceLine = candleSeries.createPriceLine({
+                price: normPos.sl,
+                color: '#f43f5e',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                axisLabelVisible: true,
+                title: `SL @ ₹${normPos.sl.toFixed(2)} (-₹${Math.round(normPos.slAmount)})`,
+              });
+            } catch (e) { console.warn("Failed to create SL line:", e); }
+          }
+
+          const targetVal = normPos.tp > 0 ? normPos.tp : (normPos.type === 'BUY' ? normPos.entry * 1.02 : normPos.entry * 0.98);
+          try {
+            activeTpPriceLine = candleSeries.createPriceLine({
+              price: targetVal,
+              color: '#10b981',
+              lineWidth: 2,
+              lineStyle: LightweightCharts.LineStyle.Dashed,
+              axisLabelVisible: true,
+              title: `TARGET @ ₹${targetVal.toFixed(2)} (+₹${Math.round(normPos.tpAmount)})`,
+            });
+          } catch (e) { console.warn("Failed to create TP line:", e); }
+
+          const isBeLocked = normPos.isBreakeven || normPos.breakeven_locked;
+          const beTriggerPrice = isBeLocked ? normPos.sl : (normPos.type === 'BUY' ? normPos.entry * (1.0 + (normPos.breakevenTrigger || 0.005)) : normPos.entry * (1.0 - (normPos.breakevenTrigger || 0.005)));
+          const beLabel = isBeLocked ? `🛡️ BREAKEVEN LOCKED: ₹${normPos.sl.toFixed(2)}` : `🛡️ BE TRIGGER: ₹${beTriggerPrice.toFixed(2)}`;
+
+          try {
+            activeBePriceLine = candleSeries.createPriceLine({
+              price: beTriggerPrice,
+              color: '#fbbf24',
+              lineWidth: isBeLocked ? 2 : 1,
+              lineStyle: isBeLocked ? LightweightCharts.LineStyle.Solid : LightweightCharts.LineStyle.Dotted,
+              axisLabelVisible: true,
+              title: beLabel,
+            });
+          } catch (e) { console.warn("Failed to create BE line:", e); }
+        }
+
+        chart.timeScale().fitContent();
+
+        if (canvasFallback) canvasFallback.classList.add('hidden');
+
+        // Delayed layout fit once modal is fully laid out by browser
+        setTimeout(() => {
+          if (activeChartInstance && container) {
+            const w = container.clientWidth || 800;
+            const h = container.clientHeight || 440;
+            activeChartInstance.applyOptions({ width: w, height: h });
+            try {
+              activeChartInstance.timeScale().fitContent();
+            } catch (e) {}
+          }
+        }, 60);
+
+        const resizeHandler = () => {
+          if (activeChartInstance && container) {
+            activeChartInstance.applyOptions({
+              width: container.clientWidth,
+              height: container.clientHeight
+            });
+          }
+        };
+        window.removeEventListener('resize', resizeHandler);
+        window.addEventListener('resize', resizeHandler);
+      } catch (err) {
+        console.error("LightweightCharts render failed, activating HTML5 Canvas fallback:", err);
+        if (canvasFallback) {
+          canvasFallback.classList.remove('hidden');
+          renderCanvasFallback(canvasFallback, validCandles, normPos);
+        }
+      }
     }
 
     function renderCanvasFallback(canvas, candles, pos) {
@@ -3917,8 +5159,13 @@
       let minP = Math.min(...candles.map(c => c.low));
       let maxP = Math.max(...candles.map(c => c.high));
       if (pos) {
-        minP = Math.min(minP, pos.sl, pos.entry);
-        maxP = Math.max(maxP, pos.tp || pos.target || pos.entry, pos.entry);
+        const e = Number(pos.entry || 0);
+        const s = Number(pos.sl || 0);
+        const t = Number(pos.tp || pos.target || 0);
+        if (s > 0) minP = Math.min(minP, s);
+        if (e > 0) minP = Math.min(minP, e);
+        if (t > 0) maxP = Math.max(maxP, t);
+        if (e > 0) maxP = Math.max(maxP, e);
       }
       const pad = (maxP - minP) * 0.08 || 1;
       minP -= pad;
@@ -3963,26 +5210,34 @@
         ctx.setLineDash([5, 5]);
 
         // Entry
-        ctx.strokeStyle = '#38bdf8';
-        ctx.beginPath();
-        ctx.moveTo(10, toY(pos.entry));
-        ctx.lineTo(width - 60, toY(pos.entry));
-        ctx.stroke();
+        const e = Number(pos.entry || 0);
+        if (e > 0) {
+          ctx.strokeStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.moveTo(10, toY(e));
+          ctx.lineTo(width - 60, toY(e));
+          ctx.stroke();
+        }
 
         // SL
-        ctx.strokeStyle = '#f43f5e';
-        ctx.beginPath();
-        ctx.moveTo(10, toY(pos.sl));
-        ctx.lineTo(width - 60, toY(pos.sl));
-        ctx.stroke();
+        const s = Number(pos.sl || 0);
+        if (s > 0) {
+          ctx.strokeStyle = '#f43f5e';
+          ctx.beginPath();
+          ctx.moveTo(10, toY(s));
+          ctx.lineTo(width - 60, toY(s));
+          ctx.stroke();
+        }
 
         // TP
-        const tpVal = pos.tp || pos.target || pos.entry;
-        ctx.strokeStyle = '#10b981';
-        ctx.beginPath();
-        ctx.moveTo(10, toY(tpVal));
-        ctx.lineTo(width - 60, toY(tpVal));
-        ctx.stroke();
+        const t = Number(pos.tp || pos.target || 0);
+        if (t > 0) {
+          ctx.strokeStyle = '#10b981';
+          ctx.beginPath();
+          ctx.moveTo(10, toY(t));
+          ctx.lineTo(width - 60, toY(t));
+          ctx.stroke();
+        }
 
         ctx.setLineDash([]);
       }
@@ -3991,10 +5246,14 @@
     function updateActiveChartTick() {
       if (!activeChartPosId || !activeChartInstance || !activeCandleSeries || activeChartCandles.length === 0) return;
 
-      const pos = positions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId);
+      const pos = positions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId)
+               || manualPositions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId);
       const underlying = pos ? (pos.underlying || pos.symbol.split(' ')[0]) : activeChartSymbol.split(' ')[0];
       const u = universe.find(x => x.id === underlying);
-      const curPrice = pos ? pos.ltp : (u ? u.price : activeChartCandles[activeChartCandles.length - 1].close);
+      
+      const normEntry = pos ? Number(pos.entry ?? pos.entry_price ?? 0) : 0;
+      const normLtp = pos ? Number(pos.ltp ?? pos.current_price ?? normEntry) : (u ? u.price : activeChartCandles[activeChartCandles.length - 1].close);
+      const curPrice = normLtp > 0 ? normLtp : (u ? u.price : 1000);
 
       const lastC = activeChartCandles[activeChartCandles.length - 1];
       const nowTs = Math.floor(Date.now() / 1000);
@@ -4040,19 +5299,21 @@
       }
 
       if (pos) {
-        if (activeSlPriceLine) {
+        const normSl = Number(pos.sl ?? 0);
+        const normSlAmt = Number(pos.slAmount ?? pos.sl_amount ?? 1000);
+        if (activeSlPriceLine && normSl > 0) {
           activeSlPriceLine.applyOptions({
-            price: pos.sl,
-            title: `SL @ ₹${pos.sl.toFixed(2)} (-₹${Math.round(pos.slAmount || 1000)})`
+            price: normSl,
+            title: `SL @ ₹${normSl.toFixed(2)} (-₹${Math.round(normSlAmt)})`
           });
         }
         if (activeBePriceLine) {
           const isBeLocked = pos.isBreakeven || pos.breakeven_locked;
-          if (isBeLocked) {
+          if (isBeLocked && normSl > 0) {
             activeBePriceLine.applyOptions({
-              price: pos.sl,
+              price: normSl,
               lineStyle: LightweightCharts.LineStyle.Solid,
-              title: `🛡️ BREAKEVEN LOCKED: ₹${pos.sl.toFixed(2)}`
+              title: `🛡️ BREAKEVEN LOCKED: ₹${normSl.toFixed(2)}`
             });
           }
         }
@@ -4079,8 +5340,13 @@
 
     function exitFromChartModal() {
       if (!activeChartPosId) return;
+      const isManual = manualPositions.some(p => p.id === activeChartPosId || p.symbol === activeChartPosId);
       if (confirm(`Are you sure you want to close position for ${activeChartSymbol}?`)) {
-        manualExit(activeChartPosId);
+        if (isManual) {
+          manualClosePosition(activeChartPosId);
+        } else {
+          manualExit(activeChartPosId);
+        }
         closePositionChartModal();
       }
     }
@@ -4103,7 +5369,8 @@
             : "px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-[11px] font-semibold cursor-pointer transition";
         }
       }
-      const pos = positions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId);
+      const pos = positions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId)
+               || manualPositions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId);
       renderCandlestickChart(activeChartCandles, pos);
     }
 
@@ -4119,7 +5386,8 @@
           }
         }
       });
-      const pos = positions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId);
+      const pos = positions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId)
+               || manualPositions.find(p => p.id === activeChartPosId || p.symbol === activeChartPosId);
       renderCandlestickChart(activeChartCandles, pos);
     }
   </script>

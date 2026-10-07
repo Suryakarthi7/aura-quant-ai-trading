@@ -111,14 +111,26 @@ if USE_FLASK:
         from market_data import real_feed
         candle_data = real_feed.get_symbol_candles(symbol)
         
-        # Match with any active position
+        # Match with any active position (AI or Manual Desk)
         matched_pos = None
         for p in engine.active_positions:
             if p.get("id") == symbol or p.get("symbol") == symbol or p.get("underlying") == candle_data.get("underlying"):
                 matched_pos = p
                 break
+        if not matched_pos:
+            for p in engine.manual_active_positions:
+                if p.get("id") == symbol or p.get("symbol") == symbol or p.get("underlying") == candle_data.get("underlying"):
+                    matched_pos = p
+                    break
         
-        candle_data["position"] = matched_pos
+        if matched_pos:
+            pos_copy = dict(matched_pos)
+            pos_copy["entry"] = pos_copy.get("entry_price", pos_copy.get("base_price", 0.0))
+            pos_copy["ltp"] = pos_copy.get("current_price", pos_copy["entry"])
+            pos_copy["tp"] = pos_copy.get("target", 0.0)
+            candle_data["position"] = pos_copy
+        else:
+            candle_data["position"] = None
         return jsonify(candle_data)
 
     @app.route("/api/close_position", methods=["POST"])
@@ -170,6 +182,74 @@ if USE_FLASK:
     def reset_account():
         engine.reset_account()
         return jsonify({"success": True, "message": "Account reset successfully."})
+
+    @app.route("/api/manual_order", methods=["POST"])
+    def manual_order():
+        data = request.get_json(silent=True) or {}
+        symbol = data.get("symbol")
+        if not symbol:
+            return jsonify({"success": False, "message": "Stock symbol required."}), 400
+        side = data.get("side", "BUY")
+        qty = int(data.get("qty")) if data.get("qty") is not None else None
+        entry_price = float(data.get("entry_price")) if data.get("entry_price") is not None else None
+        sl_price = float(data.get("sl_price")) if data.get("sl_price") is not None else None
+        tp_price = float(data.get("tp_price")) if data.get("tp_price") is not None else None
+        sl_amount = float(data.get("sl_amount")) if data.get("sl_amount") is not None else None
+        tp_amount = float(data.get("tp_amount")) if data.get("tp_amount") is not None else None
+        reason = data.get("reason", "Manual Trade")
+        success, msg, pos = engine.execute_manual_order(
+            symbol=symbol, side=side, qty=qty, entry_price=entry_price,
+            sl_price=sl_price, tp_price=tp_price, sl_amount=sl_amount, tp_amount=tp_amount,
+            reason=reason
+        )
+        return jsonify({"success": success, "message": msg, "position": pos})
+
+    @app.route("/api/manual_close_position", methods=["POST"])
+    def manual_close_position():
+        data = request.get_json(silent=True) or {}
+        pos_id = data.get("position_id")
+        reason = data.get("reason", "Manual User Exit")
+        if not pos_id:
+            return jsonify({"success": False, "message": "Position ID required"}), 400
+        success, msg = engine.close_single_manual_position(pos_id, reason=reason)
+        return jsonify({"success": success, "message": msg})
+
+    @app.route("/api/manual_update_sltp", methods=["POST"])
+    def manual_update_sltp():
+        data = request.get_json(silent=True) or {}
+        pos_id = data.get("position_id")
+        sl_amount = float(data.get("sl_amount")) if data.get("sl_amount") is not None else None
+        tp_amount = float(data.get("tp_amount")) if data.get("tp_amount") is not None else None
+        if not pos_id:
+            return jsonify({"success": False, "message": "Position ID required"}), 400
+        success, msg = engine.update_manual_position_sltp(pos_id, sl_amount=sl_amount, tp_amount=tp_amount)
+        return jsonify({"success": success, "message": msg})
+
+    @app.route("/api/manual_bulk_update_sltp", methods=["POST"])
+    def manual_bulk_update_sltp():
+        data = request.get_json(silent=True) or {}
+        side = data.get("side", "BUY")
+        sl_amount = float(data.get("sl_amount")) if data.get("sl_amount") is not None else None
+        tp_amount = float(data.get("tp_amount")) if data.get("tp_amount") is not None else None
+        success, msg = engine.update_all_manual_positions_sltp(side=side, sl_amount=sl_amount, tp_amount=tp_amount)
+        return jsonify({"success": success, "message": msg})
+
+    @app.route("/api/manual_settings", methods=["POST"])
+    def manual_settings():
+        data = request.get_json(silent=True) or {}
+        engine.update_manual_settings(
+            initial_capital=float(data.get("initial_capital")) if data.get("initial_capital") is not None else None,
+            daily_loss_limit=float(data.get("daily_loss_limit")) if data.get("daily_loss_limit") is not None else None,
+            risk_per_trade_pct=float(data.get("risk_per_trade_pct")) if data.get("risk_per_trade_pct") is not None else None,
+            max_daily_trades=int(data.get("max_daily_trades")) if data.get("max_daily_trades") is not None else None,
+            brokerage_per_trade=float(data.get("brokerage_per_trade")) if data.get("brokerage_per_trade") is not None else None
+        )
+        return jsonify({"success": True, "message": "Manual desk settings updated."})
+
+    @app.route("/api/manual_reset", methods=["POST"])
+    def manual_reset():
+        engine.reset_manual_account()
+        return jsonify({"success": True, "message": "Manual trading account reset successfully."})
 
     def _open_browser(port):
         import time
@@ -279,7 +359,19 @@ else:
                     if p.get("id") == symbol or p.get("symbol") == symbol or p.get("underlying") == candle_data.get("underlying"):
                         matched_pos = p
                         break
-                candle_data["position"] = matched_pos
+                if not matched_pos:
+                    for p in engine.manual_active_positions:
+                        if p.get("id") == symbol or p.get("symbol") == symbol or p.get("underlying") == candle_data.get("underlying"):
+                            matched_pos = p
+                            break
+                if matched_pos:
+                    pos_copy = dict(matched_pos)
+                    pos_copy["entry"] = pos_copy.get("entry_price", pos_copy.get("base_price", 0.0))
+                    pos_copy["ltp"] = pos_copy.get("current_price", pos_copy["entry"])
+                    pos_copy["tp"] = pos_copy.get("target", 0.0)
+                    candle_data["position"] = pos_copy
+                else:
+                    candle_data["position"] = None
                 self._send_json(candle_data)
             elif clean_path == "/api/matches":
                 self._send_json({"success": True, "matches": []})
@@ -355,6 +447,60 @@ else:
             elif parsed.path == "/api/reset":
                 engine.reset_account()
                 self._send_json({"success": True, "message": "Account reset successfully."})
+            elif parsed.path == "/api/manual_order":
+                symbol = data.get("symbol")
+                if not symbol:
+                    self._send_json({"success": False, "message": "Stock symbol required."}, status=400)
+                else:
+                    side = data.get("side", "BUY")
+                    qty = int(data.get("qty")) if data.get("qty") is not None else None
+                    entry_price = float(data.get("entry_price")) if data.get("entry_price") is not None else None
+                    sl_price = float(data.get("sl_price")) if data.get("sl_price") is not None else None
+                    tp_price = float(data.get("tp_price")) if data.get("tp_price") is not None else None
+                    sl_amount = float(data.get("sl_amount")) if data.get("sl_amount") is not None else None
+                    tp_amount = float(data.get("tp_amount")) if data.get("tp_amount") is not None else None
+                    reason = data.get("reason", "Manual Trade")
+                    success, msg, pos = engine.execute_manual_order(
+                        symbol=symbol, side=side, qty=qty, entry_price=entry_price,
+                        sl_price=sl_price, tp_price=tp_price, sl_amount=sl_amount, tp_amount=tp_amount,
+                        reason=reason
+                    )
+                    self._send_json({"success": success, "message": msg, "position": pos})
+            elif parsed.path == "/api/manual_close_position":
+                pos_id = data.get("position_id")
+                reason = data.get("reason", "Manual User Exit")
+                if not pos_id:
+                    self._send_json({"success": False, "message": "Position ID required"}, status=400)
+                else:
+                    success, msg = engine.close_single_manual_position(pos_id, reason=reason)
+                    self._send_json({"success": success, "message": msg})
+            elif parsed.path == "/api/manual_update_sltp":
+                pos_id = data.get("position_id")
+                sl_amount = float(data.get("sl_amount")) if data.get("sl_amount") is not None else None
+                tp_amount = float(data.get("tp_amount")) if data.get("tp_amount") is not None else None
+                if not pos_id:
+                    self._send_json({"success": False, "message": "Position ID required"}, status=400)
+                else:
+                    success, msg = engine.update_manual_position_sltp(pos_id, sl_amount=sl_amount, tp_amount=tp_amount)
+                    self._send_json({"success": success, "message": msg})
+            elif parsed.path == "/api/manual_bulk_update_sltp":
+                side = data.get("side", "BUY")
+                sl_amount = float(data.get("sl_amount")) if data.get("sl_amount") is not None else None
+                tp_amount = float(data.get("tp_amount")) if data.get("tp_amount") is not None else None
+                success, msg = engine.update_all_manual_positions_sltp(side=side, sl_amount=sl_amount, tp_amount=tp_amount)
+                self._send_json({"success": success, "message": msg})
+            elif parsed.path == "/api/manual_settings":
+                engine.update_manual_settings(
+                    initial_capital=float(data.get("initial_capital")) if data.get("initial_capital") is not None else None,
+                    daily_loss_limit=float(data.get("daily_loss_limit")) if data.get("daily_loss_limit") is not None else None,
+                    risk_per_trade_pct=float(data.get("risk_per_trade_pct")) if data.get("risk_per_trade_pct") is not None else None,
+                    max_daily_trades=int(data.get("max_daily_trades")) if data.get("max_daily_trades") is not None else None,
+                    brokerage_per_trade=float(data.get("brokerage_per_trade")) if data.get("brokerage_per_trade") is not None else None
+                )
+                self._send_json({"success": True, "message": "Manual desk settings updated."})
+            elif parsed.path == "/api/manual_reset":
+                engine.reset_manual_account()
+                self._send_json({"success": True, "message": "Manual trading account reset successfully."})
             elif parsed.path == "/api/sync-prices":
                 from market_data import real_feed
                 res = real_feed.sync_all_prices_now(force=True)
